@@ -59,7 +59,7 @@ The site owner saves one FreeAstroAPI key in `Settings > Astrology Suite > API` 
 - `Vedic Astrology Workbench` adds practitioner controls and readable references for graha positions, active Vimshottari dashas, yogas/doshas, birth Panchang, Shadbala, Ashtakavarga, and selected vargas.
 - `Settings > Astrology Suite > Vedic Chart` controls the frontend Vedic layout, theme, node, sign/graha labels, optional outer planets, titles, colors, sizing overrides, and an API-generated D1/D9 preview. House labels remain hidden.
 - `Settings > Astrology Suite > Style` includes a no-request live preview and dedicated Vedic controls for workbench surfaces, text, borders, accents, summary tiles, table headers, and badges.
-- `Astrology Bot` renders a Western/Vedic chat component with birth profile collection. Add your Gemini API key in `Settings > Astrology Suite > API`; the saved FreeAstroAPI key is used for MCP astrology tool calls.
+- `Astrology Bot` renders a Western/Vedic chat component with birth profile collection. The saved FreeAstroAPI key powers MCP astrology tool calls. On WordPress 7.0+, connect Google under `Settings > Connectors` for the answer layer; the legacy Gemini field is only for older WordPress versions.
 - Report rendering can be customized in plugin settings.
 - `Settings > Astrology Suite > Objects` selects one Western house system and one lunar-node mode (True, Mean, or None) for all Western natal outputs.
 - Report output can include birth context, optional themed interpretation groups, and clickable planet aspect links that open the matching FreeAstroAPI interpretation block in a modal; this does not use the psychological report flow.
@@ -98,13 +98,13 @@ The site owner saves one FreeAstroAPI key in `Settings > Astrology Suite > API` 
 
 ## External services
 
-Astrology Suite connects to [FreeAstroAPI](https://www.freeastroapi.com/) to autocomplete cities and generate astrology calculations. The Astrology Bot also connects to Google Gemini to generate the chat answer.
+Astrology Suite connects to [FreeAstroAPI](https://www.freeastroapi.com/) to autocomplete cities and generate astrology calculations. A standard chart/report installation only needs a FreeAstroAPI key. The optional Astrology Bot uses Google Gemini for its answer layer.
 
 - City autocomplete sends the typed city query and optional country filter over HTTPS when someone types into the city field.
 - Natal chart, report, simple-sign, ephemeris, daily horoscope, personalized horoscope, and astrology bot requests send submitted astrology data and calculation options over HTTPS when a visitor submits the form while public calculations are enabled, or when an authenticated editor submits while public calculations are disabled.
-- Astrology bot requests may send the chat message, recent chat history, selected Western/Vedic system, and submitted birth profile to FreeAstroAPI MCP and Google Gemini over HTTPS.
+- Astrology bot requests may send the chat message, recent chat history, selected Western/Vedic system, and submitted birth profile to FreeAstroAPI MCP and Google Gemini over HTTPS. On WordPress 7.0+, Gemini access is managed by the Google provider connected under `Settings > Connectors`.
 - Calculation requests also include the site's configured FreeAstroAPI key in the server-to-server request header. The API key is not sent to the visitor's browser.
-- Astrology bot answer requests include the site's configured Gemini API key in the server-to-server request header. The Gemini API key is not sent to the visitor's browser.
+- On WordPress versions before 7.0, Astrology bot answer requests use the legacy Gemini key saved in plugin settings. On WordPress 7.0+, the WordPress AI Client uses the Google connector, and the legacy key is ignored.
 - The plugin does not store visitor birth data in WordPress by default. The optional “Past inputs” feature stores recent successful requests in the visitor's browser local storage only.
 - Custom chart configs can be generated at [FreeAstroAPI Chart Designer](https://www.freeastroapi.com/dashboard/chart-designer), and per-theme request bodies follow the [FreeAstroAPI SVG/PNG chart endpoint](https://www.freeastroapi.com/docs/western/chart-svg).
 - The ephemeris widget follows the [FreeAstroAPI Western Ephemeris endpoint](https://www.freeastroapi.com/docs/western/ephemeris).
@@ -119,7 +119,7 @@ Links:
 
 - Terms of Service: [https://www.freeastroapi.com/terms](https://www.freeastroapi.com/terms)
 - Privacy Policy: [https://www.freeastroapi.com/privacy](https://www.freeastroapi.com/privacy)
-- Google Gemini API key docs: [https://ai.google.dev/gemini-api/docs/api-key](https://ai.google.dev/gemini-api/docs/api-key)
+- Google Gemini API key docs for legacy WordPress versions: [https://ai.google.dev/gemini-api/docs/api-key](https://ai.google.dev/gemini-api/docs/api-key)
 
 ## Migration
 

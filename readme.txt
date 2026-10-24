@@ -31,7 +31,7 @@ Astrology Suite for FreeAstroAPI is a WordPress toolkit for publishing interacti
 = Built for WordPress site owners =
 
 * Use Gutenberg blocks or equivalent shortcodes in classic content and templates.
-* Keep FreeAstroAPI and Gemini credentials in server-side WordPress settings; visitors never enter or receive the saved keys.
+* Keep FreeAstroAPI credentials in server-side WordPress settings; visitors never enter or receive the saved key.
 * Respect different FreeAstroAPI plans with a configurable site-wide request queue, short jittered retries, and a safe 1 RPS default.
 * Capture birth details with city autocomplete, explicit 24-hour time controls, and an optional browser-local Past inputs list.
 * Choose one supported Western house system for reports, chart wheels, previews, focused angle calculations, and Western bot context.
@@ -40,7 +40,7 @@ Astrology Suite for FreeAstroAPI is a WordPress toolkit for publishing interacti
 * Localize frontend labels and select the natal interpretation response language.
 * Choose built-in chart themes, edit chart request bodies, or use a custom chart_config from the FreeAstroAPI Chart Designer.
 * Allow public calculations or restrict them to logged-in editors.
-* Add a Western/Vedic astrology bot powered by FreeAstroAPI tools and an optional site-owned Gemini API key.
+* Add a Western/Vedic astrology bot powered by FreeAstroAPI tools and, on WordPress 7.0+, a provider connected under Settings > Connectors.
 
 Included blocks:
 
@@ -78,15 +78,15 @@ Included shortcodes:
 
 == External services ==
 
-Astrology Suite for FreeAstroAPI connects to FreeAstroAPI (`https://www.freeastroapi.com/`) to autocomplete cities and generate astrology calculations used by the included blocks. The Astrology Bot also connects to Google Gemini to generate chat answers.
+Astrology Suite for FreeAstroAPI connects to FreeAstroAPI (`https://www.freeastroapi.com/`) to autocomplete cities and generate astrology calculations used by the included blocks. A standard chart/report installation only needs a FreeAstroAPI key. The optional Astrology Bot uses Google Gemini for its answer layer.
 
 What is sent and when:
 
 * When someone types at least two characters into the city field, the plugin sends the typed city query and optional country filter to FreeAstroAPI over HTTPS so matching cities and timezones can be returned.
 * When a visitor submits a natal chart, report, simple-sign, ephemeris, horoscope, Vedic chart/workbench, or astrology bot form while public calculations are enabled, or when an authenticated editor submits while public calculations are disabled, the plugin sends the submitted astrology data and calculation options to FreeAstroAPI over HTTPS. This may include the optional name field, birth date, birth time, city name, latitude, longitude, timezone, interpretation settings, selected bodies, zodiac type, Vedic vargas/modules/layout, horoscope dates, chat message/history/profile, the requested calculation mode, and whether minor aspects were requested.
-* Astrology bot requests may send the chat message, recent chat history, selected Western/Vedic system, and submitted birth profile to FreeAstroAPI MCP and Google Gemini over HTTPS.
+* Astrology bot requests may send the chat message, recent chat history, selected Western/Vedic system, and submitted birth profile to FreeAstroAPI MCP and Google Gemini over HTTPS. On WordPress 7.0+, Gemini access is managed by the Google provider connected under Settings > Connectors.
 * Calculation requests also include the site's configured FreeAstroAPI key in the server-to-server request header so FreeAstroAPI can authenticate the request. The API key is not sent to the visitor's browser.
-* Astrology bot answer requests include the site's configured Gemini API key in the server-to-server request header. The Gemini API key is not sent to the visitor's browser.
+* On WordPress versions before 7.0, Astrology bot answer requests use the legacy Gemini key saved in plugin settings. On WordPress 7.0+, the WordPress AI Client uses the Google connector, and the legacy key is ignored.
 * The plugin does not store visitor birth data in WordPress by default. The optional “Past inputs” feature stores recent successful requests only in the visitor's local browser storage.
 
 FreeAstroAPI Terms of Service: https://www.freeastroapi.com/terms
@@ -99,7 +99,7 @@ FreeAstroAPI Vedic Visual Chart Docs: https://www.freeastroapi.com/docs/vedic/vi
 FreeAstroAPI Full Vedic Calculate Docs: https://www.freeastroapi.com/docs/vedic/calculate
 FreeAstroAPI Western Natal Docs: https://www.freeastroapi.com/docs/western/natal
 FreeAstroAPI Astrology Bot: https://www.freeastroapi.com/astrology-bot
-Google Gemini API Key Docs: https://ai.google.dev/gemini-api/docs/api-key
+Google Gemini API Key Docs for legacy WordPress versions: https://ai.google.dev/gemini-api/docs/api-key
 
 == Installation ==
 
@@ -109,6 +109,7 @@ Google Gemini API Key Docs: https://ai.google.dev/gemini-api/docs/api-key
 4. Set **API requests per second** to match the saved key's FreeAstroAPI plan. The safe default is 1.
 5. Add Astrology Suite blocks in the block editor.
 6. Or add Astrology Suite shortcodes in shortcode-ready content.
+7. Optional: To use the Astrology Bot on WordPress 7.0+, connect Google under **Settings > Connectors**.
 
 == Frequently Asked Questions ==
 
