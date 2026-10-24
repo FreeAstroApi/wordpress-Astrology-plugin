@@ -1,0 +1,10 @@
+StarFont Sans public-domain notice
+
+The bundled starfont-sans.ttf is the original StarFont Sans TrueType font designed by Anthony I. P. Owen. It matches STRFNSAN.TTF from the CTAN starfont 1.2 package.
+
+Source: https://ctan.org/pkg/starfont
+SHA-256: dde004a71fc268451ebb4d7c4ace3c3561b59a3ffb1109b81dfffce84491b29c
+
+As of September 29, 2010, the starfont package was released to the public domain by its authors, Matthew Skala and Anthony I. P. Owen.
+
+Anthony Owen confirmed that he placed the StarFont Serif and StarFont Sans fonts in the public domain, with no licensing restrictions, and permitted distribution as-is without implied warranty. Matthew Skala also released his packaging contributions to the public domain.
