@@ -4023,36 +4023,36 @@ JSON
             <section class="openastro-vedic-report">
                 <div class="openastro-vedic-heading">
                     <div>
-                        <span class="openastro-vedic-eyebrow"><?php esc_html_e('Vedic Workbench', 'astrology-suite-freeastroapi'); ?></span>
-                        <h3><?php esc_html_e('Sidereal chart overview', 'astrology-suite-freeastroapi'); ?></h3>
+                        <span class="openastro-vedic-eyebrow"><?php esc_html_e('Appearance preview', 'astrology-suite-freeastroapi'); ?></span>
+                        <h3><?php esc_html_e('Sample Vedic results', 'astrology-suite-freeastroapi'); ?></h3>
                     </div>
-                    <span class="openastro-vedic-badge"><?php esc_html_e('Lahiri', 'astrology-suite-freeastroapi'); ?></span>
+                    <span class="openastro-vedic-badge"><?php esc_html_e('Illustrative', 'astrology-suite-freeastroapi'); ?></span>
                 </div>
                 <div class="openastro-vedic-summary-grid">
-                    <article><span><?php esc_html_e('Lagna', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Scorpio', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Anuradha', 'astrology-suite-freeastroapi'); ?></small></article>
-                    <article><span><?php esc_html_e('Chandra', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Taurus', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Rohini', 'astrology-suite-freeastroapi'); ?></small></article>
-                    <article><span><?php esc_html_e('Surya', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Leo', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Magha', 'astrology-suite-freeastroapi'); ?></small></article>
-                    <article><span><?php esc_html_e('Active dasha', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Venus', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Until 2031', 'astrology-suite-freeastroapi'); ?></small></article>
+                    <article><span><?php esc_html_e('Ascendant', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Scorpio', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Sample nakshatra', 'astrology-suite-freeastroapi'); ?></small></article>
+                    <article><span><?php esc_html_e('Moon', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Taurus', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Sample nakshatra', 'astrology-suite-freeastroapi'); ?></small></article>
+                    <article><span><?php esc_html_e('Sun', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Leo', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Sample nakshatra', 'astrology-suite-freeastroapi'); ?></small></article>
+                    <article><span><?php esc_html_e('Dasha', 'astrology-suite-freeastroapi'); ?></span><strong><?php esc_html_e('Venus', 'astrology-suite-freeastroapi'); ?></strong><small><?php esc_html_e('Sample period', 'astrology-suite-freeastroapi'); ?></small></article>
                 </div>
                 <details class="openastro-vedic-section" open>
-                    <summary><?php esc_html_e('Graha positions', 'astrology-suite-freeastroapi'); ?><span><?php esc_html_e('D1 · 3 shown', 'astrology-suite-freeastroapi'); ?></span></summary>
+                    <summary><?php esc_html_e('Graha table', 'astrology-suite-freeastroapi'); ?><span><?php esc_html_e('Sample rows', 'astrology-suite-freeastroapi'); ?></span></summary>
                     <div class="openastro-vedic-table-wrap">
                         <table>
                             <thead><tr><th><?php esc_html_e('Graha', 'astrology-suite-freeastroapi'); ?></th><th><?php esc_html_e('Rashi', 'astrology-suite-freeastroapi'); ?></th><th><?php esc_html_e('Nakshatra', 'astrology-suite-freeastroapi'); ?></th><th><?php esc_html_e('Status', 'astrology-suite-freeastroapi'); ?></th></tr></thead>
                             <tbody>
-                                <tr><td><?php esc_html_e('Sun', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Leo 12°', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Magha', 'astrology-suite-freeastroapi'); ?></td><td><span class="openastro-vedic-strength is-sufficient"><?php esc_html_e('Strong', 'astrology-suite-freeastroapi'); ?></span></td></tr>
-                                <tr><td><?php esc_html_e('Moon', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Taurus 18°', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Rohini', 'astrology-suite-freeastroapi'); ?></td><td><span class="openastro-vedic-strength"><?php esc_html_e('Steady', 'astrology-suite-freeastroapi'); ?></span></td></tr>
+                                <tr><td><?php esc_html_e('Graha A', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Sign 1', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Nakshatra 1', 'astrology-suite-freeastroapi'); ?></td><td><span class="openastro-vedic-strength is-sufficient"><?php esc_html_e('Sample', 'astrology-suite-freeastroapi'); ?></span></td></tr>
+                                <tr><td><?php esc_html_e('Graha B', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Sign 2', 'astrology-suite-freeastroapi'); ?></td><td><?php esc_html_e('Nakshatra 2', 'astrology-suite-freeastroapi'); ?></td><td><span class="openastro-vedic-strength"><?php esc_html_e('Sample', 'astrology-suite-freeastroapi'); ?></span></td></tr>
                             </tbody>
                         </table>
                     </div>
                 </details>
                 <details class="openastro-vedic-section" open>
-                    <summary><?php esc_html_e('Yogas', 'astrology-suite-freeastroapi'); ?><span><?php esc_html_e('1 highlighted', 'astrology-suite-freeastroapi'); ?></span></summary>
+                    <summary><?php esc_html_e('Yoga block', 'astrology-suite-freeastroapi'); ?><span><?php esc_html_e('Sample entry', 'astrology-suite-freeastroapi'); ?></span></summary>
                     <div class="openastro-vedic-yoga-grid">
-                        <article><div><span><?php esc_html_e('Raja Yoga', 'astrology-suite-freeastroapi'); ?></span><em><?php esc_html_e('High confidence', 'astrology-suite-freeastroapi'); ?></em></div><h4><?php esc_html_e('Purpose and leadership', 'astrology-suite-freeastroapi'); ?></h4><p><?php esc_html_e('Interpretation and practitioner evidence use the selected surface, tile, and accent palette.', 'astrology-suite-freeastroapi'); ?></p></article>
+                        <article><div><span><?php esc_html_e('Yoga category', 'astrology-suite-freeastroapi'); ?></span><em><?php esc_html_e('Sample label', 'astrology-suite-freeastroapi'); ?></em></div><h4><?php esc_html_e('Sample yoga title', 'astrology-suite-freeastroapi'); ?></h4><p><?php esc_html_e('This illustrates how interpretation copy uses the selected surface, tile, and accent colors.', 'astrology-suite-freeastroapi'); ?></p></article>
                     </div>
                 </details>
-                <p class="openastro-vedic-disclaimer"><?php esc_html_e('Preview data is illustrative. These colors are applied to live Vedic results after saving.', 'astrology-suite-freeastroapi'); ?></p>
+                <p class="openastro-vedic-disclaimer"><?php esc_html_e('This is a static styling specimen, not a calculated chart or saved reading.', 'astrology-suite-freeastroapi'); ?></p>
             </section>
         </div>
         <p class="description"><?php esc_html_e('The preview updates instantly as you edit the Vedic controls below and does not call FreeAstroAPI.', 'astrology-suite-freeastroapi'); ?></p>

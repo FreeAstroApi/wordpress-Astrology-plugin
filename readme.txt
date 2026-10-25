@@ -4,7 +4,7 @@ Tags: astrology, natal chart, horoscope, vedic astrology, blocks
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Preview requests share the same site-wide FreeAstroAPI queue as frontend calcula
 
 == Changelog ==
 
+= 0.5.1 =
+* Relabeled the Vedic appearance preview as an illustrative styling specimen so it cannot be mistaken for generated workbench data.
+
 = 0.5.0 =
 * Reorganized all Vedic defaults, chart controls, workbench modules, result styling, and previews into one Vedic Astrology settings tab with five internal sections.
 * Added Guided, Practitioner, and Custom Vedic presets for site defaults and individual blocks.
@@ -285,6 +288,9 @@ Preview requests share the same site-wide FreeAstroAPI queue as frontend calcula
 * Added and refined simple sign widgets.
 
 == Upgrade Notice ==
+
+= 0.5.1 =
+Clarifies that the Vedic appearance screen contains sample styling content, not a calculated chart.
 
 = 0.5.0 =
 Adds a consolidated Vedic Astrology workspace, audience presets, per-block Vedic controls, expanded divisional charts, and a shorter section-based workbench.
