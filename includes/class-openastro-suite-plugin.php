@@ -19,6 +19,8 @@ class Plugin
     private const API_RPS_LIMIT_MAX = 100;
     private const API_RATE_STATE_OPTION = 'openastro_api_next_request_at';
     private const ADMIN_PREVIEW_RATE_WAIT_SECONDS = 8;
+    private const VEDIC_CALCULATION_DIVISIONS = [1, 2, 3, 7, 9, 10, 12, 30, 60];
+    private const VEDIC_VISUAL_DIVISIONS = [1, 2, 3, 4, 5, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60];
     private const UPSTREAM_BASE_URL = 'https://api.freeastroapi.com/api/v1';
     private const UPSTREAM_V2_BASE_URL = 'https://api.freeastroapi.com/api/v2';
     private const UPSTREAM_V3_BASE_URL = 'https://api.freeastroapi.com/api/v3';
@@ -990,12 +992,21 @@ JSON
     private static function vedic_chart_settings_defaults(): array
     {
         return [
+            'default_preset' => 'guided',
             'chart_style' => 'north_indian',
             'theme_type' => 'light',
             'node_type' => 'mean',
+            'ayanamsha' => 'lahiri',
             'sign_label_mode' => 'number_abbr',
             'body_label_mode' => 'abbr',
             'size' => 700,
+            'default_divisions' => [1, 9],
+            'dasha_levels' => 2,
+            'include_yogas' => true,
+            'include_panchang' => true,
+            'include_shadbala' => false,
+            'include_ashtakavarga' => false,
+            'include_avastha' => false,
             'include_outer_planets' => false,
             'show_titles' => true,
             'show_subtitles' => true,
@@ -1007,8 +1018,13 @@ JSON
             'grid' => '#b8791d',
             'outer_line' => '#7a1717',
             'sign_text' => '#7a1717',
+            'house_text' => '#7a1717',
             'body_text' => '#111111',
             'ascendant_text' => '#0b7285',
+            'brand_text' => '#7a1717',
+            'title_text' => '#2f2418',
+            'subtitle_text' => '#6b5b4a',
+            'badge_background' => '#f2e5d4',
             'sign_font_size' => 0,
             'body_font_size' => 0,
             'grid_line_width' => 0,
@@ -1019,13 +1035,20 @@ JSON
 
     public static function sanitize_vedic_chart_settings($value): array
     {
-        $raw = is_array($value) ? $value : [];
         $defaults = self::vedic_chart_settings_defaults();
+        $saved = self::get_option_value(self::OPTION_VEDIC_CHART_SETTINGS, $defaults);
+        $raw = array_merge(
+            $defaults,
+            is_array($saved) ? $saved : [],
+            is_array($value) ? $value : []
+        );
         $clean = $defaults;
         $enums = [
+            'default_preset' => ['guided', 'practitioner', 'custom'],
             'chart_style' => ['north_indian', 'south_indian', 'east_indian'],
             'theme_type' => ['light', 'dark', 'mono'],
             'node_type' => ['mean', 'true'],
+            'ayanamsha' => ['lahiri'],
             'sign_label_mode' => ['number_abbr', 'number', 'abbr', 'astrofont', 'glyph', 'astrofont_number'],
             'body_label_mode' => ['abbr', 'glyph', 'astrofont', 'visual'],
         ];
@@ -1036,11 +1059,23 @@ JSON
         }
 
         $clean['size'] = max(360, min(900, (int) ($raw['size'] ?? $defaults['size'])));
-        foreach (['include_outer_planets', 'show_titles', 'show_subtitles', 'show_division_badge', 'custom_colors'] as $key) {
+        $requested_divisions = isset($raw['default_divisions']) && is_array($raw['default_divisions'])
+            ? array_map('intval', $raw['default_divisions'])
+            : $defaults['default_divisions'];
+        $clean['default_divisions'] = array_values(array_intersect(
+            self::VEDIC_CALCULATION_DIVISIONS,
+            array_unique($requested_divisions)
+        ));
+        if ($clean['default_divisions'] === []) {
+            $clean['default_divisions'] = $defaults['default_divisions'];
+        }
+
+        $clean['dasha_levels'] = max(0, min(3, (int) ($raw['dasha_levels'] ?? $defaults['dasha_levels'])));
+        foreach (['include_yogas', 'include_panchang', 'include_shadbala', 'include_ashtakavarga', 'include_avastha', 'include_outer_planets', 'show_titles', 'show_subtitles', 'show_division_badge', 'custom_colors'] as $key) {
             $clean[$key] = filter_var($raw[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
         }
 
-        foreach (['background', 'panel_background', 'panel_border', 'grid', 'outer_line', 'sign_text', 'body_text', 'ascendant_text'] as $key) {
+        foreach (['background', 'panel_background', 'panel_border', 'grid', 'outer_line', 'sign_text', 'house_text', 'body_text', 'ascendant_text', 'brand_text', 'title_text', 'subtitle_text', 'badge_background'] as $key) {
             $color = sanitize_hex_color((string) ($raw[$key] ?? $defaults[$key]));
             $clean[$key] = is_string($color) && $color !== '' ? strtolower($color) : $defaults[$key];
         }
@@ -1116,8 +1151,13 @@ JSON
             'grid' => $settings['grid'],
             'outer_line' => $settings['outer_line'],
             'sign_text' => $settings['sign_text'],
+            'house_text' => $settings['house_text'],
             'body_text' => $settings['body_text'],
             'ascendant_text' => $settings['ascendant_text'],
+            'brand_text' => $settings['brand_text'],
+            'title_text' => $settings['title_text'],
+            'subtitle_text' => $settings['subtitle_text'],
+            'badge_background' => $settings['badge_background'],
         ];
     }
 
@@ -1847,7 +1887,7 @@ JSON
             ]);
         }
         foreach (self::vedic_style_defaults() as $option => $default) {
-            register_setting($style_group, $option, [
+            register_setting($vedic_chart_group, $option, [
                 'type' => 'string',
                 'sanitize_callback' => [__CLASS__, 'sanitize_hex_color_value'],
                 'default' => $default,
@@ -1866,7 +1906,11 @@ JSON
         add_settings_section('openastro_settings_main', __('Astrology Suite', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
         add_settings_section('openastro_report_settings', __('Report Customization', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
         add_settings_section('openastro_chart_settings', __('Custom Chart Themes', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
-        add_settings_section('openastro_vedic_chart_settings', __('Custom Vedic Chart', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
+        add_settings_section('openastro_vedic_essentials_settings', __('Vedic Essentials', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
+        add_settings_section('openastro_vedic_chart_settings', __('Vedic Chart Settings', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
+        add_settings_section('openastro_vedic_workbench_settings', __('Vedic Workbench Modules', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
+        add_settings_section('openastro_vedic_appearance_settings', __('Vedic Result Appearance', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
+        add_settings_section('openastro_vedic_preview_settings', __('Vedic Preview', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
         add_settings_section('openastro_objects_settings', __('Objects & Points', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
         add_settings_section('openastro_style_settings', __('Style Customization', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
         add_settings_section('openastro_ephemeris_style_settings', __('Ephemeris Table Styling', 'astrology-suite-freeastroapi'), '__return_false', 'openastro-settings');
@@ -2037,19 +2081,57 @@ JSON
         );
 
         add_settings_field(
-            self::OPTION_VEDIC_CHART_SETTINGS,
+            self::OPTION_VEDIC_CHART_SETTINGS . '_essentials',
+            __('Reading preset and calculation defaults', 'astrology-suite-freeastroapi'),
+            [__CLASS__, 'render_vedic_essentials_field'],
+            'openastro-settings',
+            'openastro_vedic_essentials_settings'
+        );
+
+        add_settings_field(
+            self::OPTION_VEDIC_CHART_SETTINGS . '_charts',
             __('Chart defaults and appearance', 'astrology-suite-freeastroapi'),
-            [__CLASS__, 'render_vedic_chart_settings_field'],
+            [__CLASS__, 'render_vedic_chart_defaults_field'],
             'openastro-settings',
             'openastro_vedic_chart_settings'
         );
 
         add_settings_field(
+            self::OPTION_VEDIC_CHART_SETTINGS . '_workbench',
+            __('Default workbench modules', 'astrology-suite-freeastroapi'),
+            [__CLASS__, 'render_vedic_workbench_defaults_field'],
+            'openastro-settings',
+            'openastro_vedic_workbench_settings'
+        );
+
+        add_settings_field(
+            'openastro_vedic_style_preview',
+            __('Result style preview', 'astrology-suite-freeastroapi'),
+            [__CLASS__, 'render_vedic_style_preview_field'],
+            'openastro-settings',
+            'openastro_vedic_appearance_settings'
+        );
+        foreach ([
+            self::OPTION_VEDIC_SURFACE_BG_COLOR => [__('Workbench surface background', 'astrology-suite-freeastroapi'), 'render_vedic_surface_bg_color_field'],
+            self::OPTION_VEDIC_SURFACE_TEXT_COLOR => [__('Workbench text', 'astrology-suite-freeastroapi'), 'render_vedic_surface_text_color_field'],
+            self::OPTION_VEDIC_SURFACE_BORDER_COLOR => [__('Workbench border', 'astrology-suite-freeastroapi'), 'render_vedic_surface_border_color_field'],
+            self::OPTION_VEDIC_ACCENT_COLOR => [__('Vedic accent', 'astrology-suite-freeastroapi'), 'render_vedic_accent_color_field'],
+            self::OPTION_VEDIC_TILE_BG_COLOR => [__('Summary tile background', 'astrology-suite-freeastroapi'), 'render_vedic_tile_bg_color_field'],
+            self::OPTION_VEDIC_TILE_TEXT_COLOR => [__('Summary tile text', 'astrology-suite-freeastroapi'), 'render_vedic_tile_text_color_field'],
+            self::OPTION_VEDIC_TILE_BORDER_COLOR => [__('Summary tile border', 'astrology-suite-freeastroapi'), 'render_vedic_tile_border_color_field'],
+            self::OPTION_VEDIC_TABLE_HEADER_BG_COLOR => [__('Table header background', 'astrology-suite-freeastroapi'), 'render_vedic_table_header_bg_color_field'],
+            self::OPTION_VEDIC_TABLE_HEADER_TEXT_COLOR => [__('Table header text', 'astrology-suite-freeastroapi'), 'render_vedic_table_header_text_color_field'],
+            self::OPTION_VEDIC_BADGE_BG_COLOR => [__('Badge background', 'astrology-suite-freeastroapi'), 'render_vedic_badge_bg_color_field'],
+            self::OPTION_VEDIC_BADGE_TEXT_COLOR => [__('Badge text', 'astrology-suite-freeastroapi'), 'render_vedic_badge_text_color_field'],
+        ] as $option => $field) {
+            add_settings_field($option, $field[0], [__CLASS__, $field[1]], 'openastro-settings', 'openastro_vedic_appearance_settings');
+        }
+        add_settings_field(
             'openastro_vedic_chart_preview',
-            __('Current Vedic preview', 'astrology-suite-freeastroapi'),
+            __('Generated chart preview', 'astrology-suite-freeastroapi'),
             [__CLASS__, 'render_vedic_chart_preview_field'],
             'openastro-settings',
-            'openastro_vedic_chart_settings'
+            'openastro_vedic_preview_settings'
         );
 
         add_settings_field(self::OPTION_WESTERN_HOUSE_SYSTEM, __('Western house system', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_western_house_system_field'], 'openastro-settings', 'openastro_objects_settings');
@@ -2092,19 +2174,6 @@ JSON
         add_settings_field(self::OPTION_STYLE_MODAL_TEXT_COLOR, __('Modal text color', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_style_modal_text_color_field'], 'openastro-settings', 'openastro_style_settings');
         add_settings_field(self::OPTION_STYLE_MODAL_BORDER_COLOR, __('Modal border color', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_style_modal_border_color_field'], 'openastro-settings', 'openastro_style_settings');
         add_settings_field(self::OPTION_STYLE_MODAL_ACCENT_COLOR, __('Modal link/accent color', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_style_modal_accent_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field('openastro_style_group_vedic', __('Vedic Astrology', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_style_group_vedic'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field('openastro_vedic_style_preview', __('Preview', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_style_preview_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_SURFACE_BG_COLOR, __('Workbench surface background', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_surface_bg_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_SURFACE_TEXT_COLOR, __('Workbench text', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_surface_text_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_SURFACE_BORDER_COLOR, __('Workbench border', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_surface_border_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_ACCENT_COLOR, __('Vedic accent', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_accent_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_TILE_BG_COLOR, __('Summary tile background', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_tile_bg_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_TILE_TEXT_COLOR, __('Summary tile text', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_tile_text_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_TILE_BORDER_COLOR, __('Summary tile border', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_tile_border_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_TABLE_HEADER_BG_COLOR, __('Table header background', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_table_header_bg_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_TABLE_HEADER_TEXT_COLOR, __('Table header text', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_table_header_text_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_BADGE_BG_COLOR, __('Badge background', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_badge_bg_color_field'], 'openastro-settings', 'openastro_style_settings');
-        add_settings_field(self::OPTION_VEDIC_BADGE_TEXT_COLOR, __('Badge text', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_vedic_badge_text_color_field'], 'openastro-settings', 'openastro_style_settings');
         add_settings_field('openastro_style_group_horoscope', __('Daily Sign Horoscope', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_style_group_horoscope'], 'openastro-settings', 'openastro_style_settings');
         add_settings_field('openastro_horoscope_preview', __('Preview', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_horoscope_style_preview_field'], 'openastro-settings', 'openastro_style_settings');
         add_settings_field('openastro_horoscope_sections', __('Visible sections', 'astrology-suite-freeastroapi'), [__CLASS__, 'render_horoscope_sections_field'], 'openastro-settings', 'openastro_style_settings');
@@ -2526,7 +2595,39 @@ JSON
         <?php
     }
 
-    public static function render_vedic_chart_settings_field(): void
+    public static function render_vedic_essentials_field(): void
+    {
+        $settings = self::vedic_chart_settings();
+        self::render_chart_theme_admin_styles();
+        ?>
+        <div class="astrology-suite-vedic-settings-grid">
+            <section class="astrology-suite-vedic-settings-card">
+                <h3><?php esc_html_e('Default reading experience', 'astrology-suite-freeastroapi'); ?></h3>
+                <?php
+                self::render_vedic_select_control('default_preset', __('Audience preset', 'astrology-suite-freeastroapi'), $settings, [
+                    'guided' => __('Guided - D1/D9 essentials for visitors', 'astrology-suite-freeastroapi'),
+                    'practitioner' => __('Practitioner - full reference modules', 'astrology-suite-freeastroapi'),
+                    'custom' => __('Custom - use the saved chart and workbench selections', 'astrology-suite-freeastroapi'),
+                ]);
+                self::render_vedic_select_control('node_type', __('Lunar nodes', 'astrology-suite-freeastroapi'), $settings, [
+                    'mean' => __('Mean Rahu / Ketu', 'astrology-suite-freeastroapi'),
+                    'true' => __('True Rahu / Ketu', 'astrology-suite-freeastroapi'),
+                ]);
+                ?>
+                <p class="description"><?php esc_html_e('The audience preset controls initial frontend choices and can be overridden for each Vedic block.', 'astrology-suite-freeastroapi'); ?></p>
+            </section>
+            <section class="astrology-suite-vedic-settings-card">
+                <h3><?php esc_html_e('Calculation basis', 'astrology-suite-freeastroapi'); ?></h3>
+                <p><strong><?php esc_html_e('Ayanamsha:', 'astrology-suite-freeastroapi'); ?></strong> <?php esc_html_e('Lahiri', 'astrology-suite-freeastroapi'); ?></p>
+                <p class="description"><?php esc_html_e('Lahiri is the verified default exposed by the current FreeAstroAPI Vedic endpoints. Additional ayanamshas will be added only after their supported values are documented.', 'astrology-suite-freeastroapi'); ?></p>
+                <p><strong><?php esc_html_e('House system:', 'astrology-suite-freeastroapi'); ?></strong> <?php esc_html_e('Whole Sign', 'astrology-suite-freeastroapi'); ?></p>
+                <p class="description"><?php esc_html_e('Exact birth time is required for Lagna, bhavas, divisional charts, dashas, and timing references.', 'astrology-suite-freeastroapi'); ?></p>
+            </section>
+        </div>
+        <?php
+    }
+
+    public static function render_vedic_chart_defaults_field(): void
     {
         $settings = self::vedic_chart_settings();
         self::render_chart_theme_admin_styles();
@@ -2544,10 +2645,6 @@ JSON
                     'light' => __('Light', 'astrology-suite-freeastroapi'),
                     'dark' => __('Dark', 'astrology-suite-freeastroapi'),
                     'mono' => __('Monochrome', 'astrology-suite-freeastroapi'),
-                ]);
-                self::render_vedic_select_control('node_type', __('Lunar nodes', 'astrology-suite-freeastroapi'), $settings, [
-                    'mean' => __('Mean Rahu / Ketu', 'astrology-suite-freeastroapi'),
-                    'true' => __('True Rahu / Ketu', 'astrology-suite-freeastroapi'),
                 ]);
                 self::render_vedic_select_control('sign_label_mode', __('Sign labels', 'astrology-suite-freeastroapi'), $settings, [
                     'number_abbr' => __('Number + abbreviation', 'astrology-suite-freeastroapi'),
@@ -2581,33 +2678,109 @@ JSON
             <section class="astrology-suite-vedic-settings-card">
                 <h3><?php esc_html_e('Custom colors', 'astrology-suite-freeastroapi'); ?></h3>
                 <?php self::render_vedic_checkbox_control('custom_colors', __('Override the built-in Vedic theme colors', 'astrology-suite-freeastroapi'), $settings); ?>
-                <div class="astrology-suite-vedic-color-grid">
-                    <?php
-                    self::render_vedic_color_control('background', __('Canvas', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('panel_background', __('Panel', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('panel_border', __('Panel border', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('grid', __('Grid', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('outer_line', __('Outer line', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('sign_text', __('Sign text', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('body_text', __('Graha text', 'astrology-suite-freeastroapi'), $settings);
-                    self::render_vedic_color_control('ascendant_text', __('Ascendant', 'astrology-suite-freeastroapi'), $settings);
-                    ?>
-                </div>
+                <details class="astrology-suite-vedic-advanced-settings">
+                    <summary><?php esc_html_e('Advanced chart colors', 'astrology-suite-freeastroapi'); ?></summary>
+                    <div class="astrology-suite-vedic-color-grid">
+                        <?php
+                        self::render_vedic_color_control('background', __('Canvas', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('panel_background', __('Panel', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('panel_border', __('Panel border', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('grid', __('Grid', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('outer_line', __('Outer line', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('sign_text', __('Sign text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('house_text', __('House text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('body_text', __('Graha text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('ascendant_text', __('Ascendant', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('brand_text', __('Brand text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('title_text', __('Title text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('subtitle_text', __('Subtitle text', 'astrology-suite-freeastroapi'), $settings);
+                        self::render_vedic_color_control('badge_background', __('Division badge', 'astrology-suite-freeastroapi'), $settings);
+                        ?>
+                    </div>
+                </details>
             </section>
 
             <section class="astrology-suite-vedic-settings-card">
                 <h3><?php esc_html_e('Optional sizing overrides', 'astrology-suite-freeastroapi'); ?></h3>
                 <p class="description"><?php esc_html_e('Leave these at 0 to use FreeAstroAPI’s layout-specific defaults.', 'astrology-suite-freeastroapi'); ?></p>
-                <?php
-                self::render_vedic_number_control('sign_font_size', __('Sign font size', 'astrology-suite-freeastroapi'), $settings, 0, 64, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
-                self::render_vedic_number_control('body_font_size', __('Graha font size', 'astrology-suite-freeastroapi'), $settings, 0, 64, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
-                self::render_vedic_number_control('grid_line_width', __('Grid line width', 'astrology-suite-freeastroapi'), $settings, 0, 12, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
-                self::render_vedic_number_control('outer_line_width', __('Outer line width', 'astrology-suite-freeastroapi'), $settings, 0, 12, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
-                self::render_vedic_number_control('panel_padding', __('Panel padding', 'astrology-suite-freeastroapi'), $settings, 0, 60, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
-                ?>
+                <details class="astrology-suite-vedic-advanced-settings">
+                    <summary><?php esc_html_e('Typography and spacing overrides', 'astrology-suite-freeastroapi'); ?></summary>
+                    <?php
+                    self::render_vedic_number_control('sign_font_size', __('Sign font size', 'astrology-suite-freeastroapi'), $settings, 0, 64, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
+                    self::render_vedic_number_control('body_font_size', __('Graha font size', 'astrology-suite-freeastroapi'), $settings, 0, 64, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
+                    self::render_vedic_number_control('grid_line_width', __('Grid line width', 'astrology-suite-freeastroapi'), $settings, 0, 12, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
+                    self::render_vedic_number_control('outer_line_width', __('Outer line width', 'astrology-suite-freeastroapi'), $settings, 0, 12, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
+                    self::render_vedic_number_control('panel_padding', __('Panel padding', 'astrology-suite-freeastroapi'), $settings, 0, 60, __('Pixels; 0 uses the API default.', 'astrology-suite-freeastroapi'));
+                    ?>
+                </details>
             </section>
         </div>
         <?php
+    }
+
+    public static function render_vedic_workbench_defaults_field(): void
+    {
+        $settings = self::vedic_chart_settings();
+        $selected_divisions = array_map('intval', (array) $settings['default_divisions']);
+        self::render_chart_theme_admin_styles();
+        ?>
+        <div class="astrology-suite-vedic-settings-grid">
+            <section class="astrology-suite-vedic-settings-card">
+                <h3><?php esc_html_e('Starting workbench data', 'astrology-suite-freeastroapi'); ?></h3>
+                <fieldset class="astrology-suite-vedic-module-list">
+                    <legend><?php esc_html_e('Default divisional charts', 'astrology-suite-freeastroapi'); ?></legend>
+                    <input type="hidden" name="<?php echo esc_attr(self::OPTION_VEDIC_CHART_SETTINGS . '[default_divisions][]'); ?>" value="" />
+                    <?php foreach (self::vedic_division_options() as $division => $label) : ?>
+                        <label class="astrology-suite-vedic-checkbox">
+                            <input
+                                type="checkbox"
+                                name="<?php echo esc_attr(self::OPTION_VEDIC_CHART_SETTINGS . '[default_divisions][]'); ?>"
+                                value="<?php echo esc_attr((string) $division); ?>"
+                                <?php checked(in_array($division, $selected_divisions, true), true); ?>
+                            />
+                            <?php echo esc_html($label); ?>
+                        </label>
+                    <?php endforeach; ?>
+                </fieldset>
+                <?php
+                self::render_vedic_select_control('dasha_levels', __('Dasha depth', 'astrology-suite-freeastroapi'), $settings, [
+                    '0' => __('Dasha off', 'astrology-suite-freeastroapi'),
+                    '1' => __('Mahadasha', 'astrology-suite-freeastroapi'),
+                    '2' => __('Mahadasha + Antardasha', 'astrology-suite-freeastroapi'),
+                    '3' => __('Through Pratyantardasha', 'astrology-suite-freeastroapi'),
+                ]);
+                ?>
+            </section>
+            <section class="astrology-suite-vedic-settings-card">
+                <h3><?php esc_html_e('Default result modules', 'astrology-suite-freeastroapi'); ?></h3>
+                <?php
+                self::render_vedic_checkbox_control('include_yogas', __('Yogas and doshas', 'astrology-suite-freeastroapi'), $settings);
+                self::render_vedic_checkbox_control('include_panchang', __('Birth Panchang', 'astrology-suite-freeastroapi'), $settings);
+                self::render_vedic_checkbox_control('include_shadbala', __('Shadbala strength', 'astrology-suite-freeastroapi'), $settings);
+                self::render_vedic_checkbox_control('include_ashtakavarga', __('Ashtakavarga', 'astrology-suite-freeastroapi'), $settings);
+                self::render_vedic_checkbox_control('include_avastha', __('Baladi Avastha', 'astrology-suite-freeastroapi'), $settings);
+                ?>
+                <p class="description"><?php esc_html_e('These modules are returned by one Full Vedic Calculate request. Visitor-facing blocks may override them.', 'astrology-suite-freeastroapi'); ?></p>
+            </section>
+        </div>
+        <?php
+    }
+
+    private static function vedic_division_options(): array
+    {
+        $labels = [
+            1 => __('D1 - Rashi', 'astrology-suite-freeastroapi'),
+            2 => __('D2 - Hora', 'astrology-suite-freeastroapi'),
+            3 => __('D3 - Drekkana', 'astrology-suite-freeastroapi'),
+            7 => __('D7 - Saptamsha', 'astrology-suite-freeastroapi'),
+            9 => __('D9 - Navamsha', 'astrology-suite-freeastroapi'),
+            10 => __('D10 - Dashamsha', 'astrology-suite-freeastroapi'),
+            12 => __('D12 - Dwadashamsha', 'astrology-suite-freeastroapi'),
+            30 => __('D30 - Trimshamsha', 'astrology-suite-freeastroapi'),
+            60 => __('D60 - Shashtiamsha', 'astrology-suite-freeastroapi'),
+        ];
+
+        return array_intersect_key($labels, array_flip(self::VEDIC_CALCULATION_DIVISIONS));
     }
 
     private static function render_vedic_select_control(string $key, string $label, array $settings, array $options): void
@@ -2646,15 +2819,60 @@ JSON
     public static function render_vedic_chart_preview_field(): void
     {
         self::render_chart_theme_admin_styles();
-        echo '<div class="astrology-suite-vedic-preview"><img src="' . esc_url(self::vedic_chart_preview_url()) . '" alt="' . esc_attr__('Sample D1 and D9 Vedic chart using the saved settings', 'astrology-suite-freeastroapi') . '" /></div>';
+        $preview_url = self::vedic_chart_preview_url();
+        $preview_id = 'astrology-suite-vedic-preview-' . wp_unique_id();
+        echo '<p><button type="button" class="button button-secondary astrology-suite-vedic-preview-button" data-preview-url="' . esc_url($preview_url) . '" data-preview-target="' . esc_attr($preview_id) . '">' . esc_html__('Generate cached preview', 'astrology-suite-freeastroapi') . '</button></p>';
+        echo '<p class="description astrology-suite-vedic-preview-status" aria-live="polite">' . esc_html__('The preview is generated only when requested so it does not spend an API call while you browse settings.', 'astrology-suite-freeastroapi') . '</p>';
+        echo '<div class="astrology-suite-vedic-preview" id="' . esc_attr($preview_id) . '" hidden><img alt="' . esc_attr__('Sample D1 and D9 Vedic chart using the saved settings', 'astrology-suite-freeastroapi') . '" /></div>';
         echo '<p class="description">' . wp_kses(
             sprintf(
                 /* translators: %s: FreeAstroAPI Vedic visual chart documentation URL. */
-                __('This sample is generated by the <a href="%s" target="_blank" rel="noopener">FreeAstroAPI Vedic visual-chart endpoint</a>. Save changes to regenerate it with the selected defaults.', 'astrology-suite-freeastroapi'),
+                __('The cached sample is generated by the <a href="%s" target="_blank" rel="noopener">FreeAstroAPI Vedic visual-chart endpoint</a> after you save your defaults.', 'astrology-suite-freeastroapi'),
                 esc_url(self::UPSTREAM_VEDIC_VISUAL_DOCS_URL)
             ),
             ['a' => ['href' => [], 'target' => [], 'rel' => []]]
         ) . '</p>';
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var button = document.querySelector('.astrology-suite-vedic-preview-button');
+            if (!button || button.dataset.bound === '1') return;
+            button.dataset.bound = '1';
+            button.addEventListener('click', function () {
+                var container = document.getElementById(button.dataset.previewTarget);
+                var status = button.parentElement.nextElementSibling;
+                var image = container ? container.querySelector('img') : null;
+                if (!container || !image) return;
+
+                button.disabled = true;
+                status.textContent = <?php echo wp_json_encode(__('Generating Vedic preview...', 'astrology-suite-freeastroapi')); ?>;
+                container.hidden = false;
+                fetch(button.dataset.previewUrl, { credentials: 'same-origin' })
+                    .then(function (response) {
+                        return response.text().then(function (body) {
+                            return { ok: response.ok, body: body };
+                        });
+                    })
+                    .then(function (result) {
+                        if (!result.ok || result.body.indexOf('Preview unavailable') !== -1 || result.body.indexOf('<svg') === -1) {
+                            throw new Error('preview_failed');
+                        }
+                        var blobUrl = URL.createObjectURL(new Blob([result.body], { type: 'image/svg+xml' }));
+                        image.onload = function () {
+                            URL.revokeObjectURL(blobUrl);
+                            button.disabled = false;
+                            status.textContent = <?php echo wp_json_encode(__('Preview generated.', 'astrology-suite-freeastroapi')); ?>;
+                        };
+                        image.src = blobUrl;
+                    })
+                    .catch(function () {
+                        button.disabled = false;
+                        status.textContent = <?php echo wp_json_encode(__('Preview unavailable. Check the API key and try again.', 'astrology-suite-freeastroapi')); ?>;
+                    });
+            });
+        });
+        </script>
+        <?php
     }
 
     private static function render_chart_theme_admin_styles(): void
@@ -2772,9 +2990,34 @@ JSON
                 color: #646970;
                 font-weight: 400;
             }
-            .astrology-suite-vedic-checkbox {
-                display: block;
+            .astrology-suite-vedic-settings-card .astrology-suite-vedic-checkbox {
+                display: flex;
+                align-items: center;
+                gap: 7px;
                 margin: 10px 0;
+            }
+            .astrology-suite-vedic-module-list {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                margin: 0;
+                padding: 0;
+                border: 0;
+            }
+            .astrology-suite-vedic-module-list legend {
+                grid-column: 1 / -1;
+                margin-bottom: 10px;
+                font-weight: 600;
+            }
+            .astrology-suite-vedic-advanced-settings {
+                margin-top: 14px;
+                padding: 12px;
+                border: 1px solid #dcdcde;
+                border-radius: 6px;
+                background: #f6f7f7;
+            }
+            .astrology-suite-vedic-advanced-settings > summary {
+                cursor: pointer;
+                font-weight: 600;
             }
             .astrology-suite-vedic-color-grid {
                 display: grid;
@@ -2804,7 +3047,8 @@ JSON
             }
             @media (max-width: 782px) {
                 .astrology-suite-vedic-settings-grid,
-                .astrology-suite-vedic-color-grid {
+                .astrology-suite-vedic-color-grid,
+                .astrology-suite-vedic-module-list {
                     grid-template-columns: 1fr;
                 }
             }
@@ -3719,12 +3963,6 @@ JSON
         echo '<input type="color" name="' . esc_attr(self::OPTION_STYLE_MODAL_ACCENT_COLOR) . '" value="' . esc_attr($value) . '" />';
     }
 
-    public static function render_style_group_vedic(): void
-    {
-        echo '<p><strong>' . esc_html__('Vedic chart and workbench result styling', 'astrology-suite-freeastroapi') . '</strong></p>';
-        echo '<p class="description">' . esc_html__('Controls the result cards, reference tiles, tables, and badges used by the Vedic Visual Chart and Vedic Astrology Workbench. SVG chart drawing colors remain under the Vedic Chart tab.', 'astrology-suite-freeastroapi') . '</p>';
-    }
-
     private static function vedic_style_defaults(): array
     {
         return [
@@ -4149,7 +4387,7 @@ JSON
     public static function render_style_group_bot(): void
     {
         echo '<p><strong>' . esc_html__('Astrology Bot display and styling', 'astrology-suite-freeastroapi') . '</strong></p>';
-        echo '<p class="description">' . esc_html__('Controls the embedded Western/Vedic chat component. The API tab stores the required Gemini key; your existing FreeAstroAPI key is used for astrology tool calls.', 'astrology-suite-freeastroapi') . '</p>';
+        echo '<p class="description">' . esc_html(function_exists('wp_ai_client_prompt') ? __('Controls the embedded Western/Vedic chat component. WordPress 7.0+ uses the Google provider connected under Settings > Connectors; the FreeAstroAPI key powers astrology tool calls.', 'astrology-suite-freeastroapi') : __('Controls the embedded Western/Vedic chat component. The API tab stores the Gemini answer-layer key; the FreeAstroAPI key powers astrology tool calls.', 'astrology-suite-freeastroapi')) . '</p>';
     }
 
     public static function render_bot_style_preview_field(): void
@@ -4523,13 +4761,33 @@ JSON
             'api' => __('API', 'astrology-suite-freeastroapi'),
             'report' => __('Report', 'astrology-suite-freeastroapi'),
             'chart' => __('Custom Chart', 'astrology-suite-freeastroapi'),
-            'vedic-chart' => __('Vedic Chart', 'astrology-suite-freeastroapi'),
+            'vedic-chart' => __('Vedic Astrology', 'astrology-suite-freeastroapi'),
             'objects' => __('Objects', 'astrology-suite-freeastroapi'),
             'style' => __('Style', 'astrology-suite-freeastroapi'),
             'ephemeris' => __('Ephemeris Style', 'astrology-suite-freeastroapi'),
             'typography' => __('Typography', 'astrology-suite-freeastroapi'),
             'help' => __('Help', 'astrology-suite-freeastroapi'),
         ];
+    }
+
+    private static function vedic_settings_sections(): array
+    {
+        return [
+            'essentials' => __('Essentials', 'astrology-suite-freeastroapi'),
+            'charts' => __('Charts', 'astrology-suite-freeastroapi'),
+            'workbench' => __('Workbench', 'astrology-suite-freeastroapi'),
+            'appearance' => __('Appearance', 'astrology-suite-freeastroapi'),
+            'preview' => __('Preview', 'astrology-suite-freeastroapi'),
+        ];
+    }
+
+    private static function active_vedic_settings_section(): string
+    {
+        $section_param = filter_input(INPUT_GET, 'section', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+        $section = is_string($section_param) ? sanitize_key(wp_unslash($section_param)) : 'essentials';
+        $sections = self::vedic_settings_sections();
+
+        return isset($sections[$section]) ? $section : 'essentials';
     }
 
     private static function active_settings_tab(): string
@@ -4584,7 +4842,15 @@ JSON
             return;
         }
         if ($tab === 'vedic-chart') {
-            self::render_section_fields('openastro_vedic_chart_settings');
+            $section = self::active_vedic_settings_section();
+            $section_ids = [
+                'essentials' => 'openastro_vedic_essentials_settings',
+                'charts' => 'openastro_vedic_chart_settings',
+                'workbench' => 'openastro_vedic_workbench_settings',
+                'appearance' => 'openastro_vedic_appearance_settings',
+                'preview' => 'openastro_vedic_preview_settings',
+            ];
+            self::render_section_fields($section_ids[$section]);
             return;
         }
         if ($tab === 'objects') {
@@ -4602,6 +4868,29 @@ JSON
         if ($tab === 'typography') {
             self::render_section_fields('openastro_typography_settings');
         }
+    }
+
+    private static function render_vedic_settings_subtabs(string $active_section): void
+    {
+        ?>
+        <nav class="nav-tab-wrapper astrology-suite-vedic-subtabs" aria-label="<?php esc_attr_e('Vedic Astrology Settings', 'astrology-suite-freeastroapi'); ?>">
+            <?php foreach (self::vedic_settings_sections() as $slug => $label) : ?>
+                <?php
+                $url = add_query_arg(
+                    ['page' => self::SETTINGS_PAGE_SLUG, 'tab' => 'vedic-chart', 'section' => $slug],
+                    admin_url('options-general.php')
+                );
+                ?>
+                <a href="<?php echo esc_url($url); ?>" class="nav-tab <?php echo $active_section === $slug ? 'nav-tab-active' : ''; ?>">
+                    <?php echo esc_html($label); ?>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+        <style>
+            .astrology-suite-vedic-subtabs { margin: 14px 0 18px; }
+            .astrology-suite-vedic-subtabs .nav-tab { padding: 7px 12px; }
+        </style>
+        <?php
     }
 
     public static function render_settings_page(): void
@@ -4630,11 +4919,16 @@ JSON
             </h2>
 
             <?php if ($active_tab !== 'help') : ?>
+                <?php if ($active_tab === 'vedic-chart') : ?>
+                    <?php self::render_vedic_settings_subtabs(self::active_vedic_settings_section()); ?>
+                <?php endif; ?>
                 <form method="post" action="options.php">
                     <?php
                     settings_fields(self::settings_group_for_tab($active_tab));
                     self::render_tabbed_settings_fields($active_tab);
-                    submit_button();
+                    if ($active_tab !== 'vedic-chart' || self::active_vedic_settings_section() !== 'preview') {
+                        submit_button();
+                    }
                     ?>
                 </form>
             <?php else : ?>
@@ -4727,12 +5021,12 @@ JSON
                         </section>
                         <section class="astrology-suite-help-card">
                             <h3><?php esc_html_e('Vedic Astrology', 'astrology-suite-freeastroapi'); ?></h3>
-                            <p><?php esc_html_e('Use Vedic Visual Chart for focused D1, D9, and other varga charts. Use Vedic Astrology Workbench for grahas, dashas, yogas, Panchang, strength modules, and practitioner references.', 'astrology-suite-freeastroapi'); ?></p>
+                            <p><?php esc_html_e('Use Vedic Visual Chart for focused D1, D9, and other varga charts. Use Vedic Astrology Workbench for grahas, dashas, yogas, Panchang, strength modules, and practitioner references. The Vedic Astrology settings tab keeps defaults, workbench modules, appearance, and previews together.', 'astrology-suite-freeastroapi'); ?></p>
                             <p><code>[astrology_suite_vedic_chart]</code> <code>[astrology_suite_vedic_workbench]</code></p>
                         </section>
                         <section class="astrology-suite-help-card">
                             <h3><?php esc_html_e('Astrology Bot', 'astrology-suite-freeastroapi'); ?></h3>
-                            <p><?php esc_html_e('Add a Western and Vedic chat experience with birth-profile collection. It uses the site-owned FreeAstroAPI key and an optional site-owned Gemini key.', 'astrology-suite-freeastroapi'); ?></p>
+                            <p><?php esc_html_e('Add a Western and Vedic chat experience with birth-profile collection. It uses the site-owned FreeAstroAPI key; WordPress 7.0+ also requires a Google provider connection under Settings > Connectors.', 'astrology-suite-freeastroapi'); ?></p>
                             <p><code>[astrology_suite_astrology_bot]</code></p>
                         </section>
                     </div>
@@ -4832,7 +5126,7 @@ JSON
                 <p><?php esc_html_e('Use shortcodes in classic editor content, shortcode blocks, widgets, or template areas that run WordPress shortcodes.', 'astrology-suite-freeastroapi'); ?></p>
                 <pre><code><?php echo esc_html("[astrology_suite mode=\"chart-report\"]\n[astrology_suite mode=\"chart-report\" language=\"vi\"]\n[astrology_suite_chart_only]\n[astrology_suite_report_only]\n[astrology_suite_chart_report]\n[astrology_suite_simple_sign_sun include_interpretation=\"true\" interpretation_style=\"improved\"]\n[astrology_suite_simple_sign_moon include_interpretation=\"false\"]\n[astrology_suite_simple_sign_rising include_interpretation=\"true\" interpretation_style=\"poetic\"]\n[astrology_suite_simple_sign_midheaven]\n[astrology_suite_ephemeris]\n[astrology_suite_daily_horoscope]\n[astrology_suite_personalized_horoscope]\n[astrology_suite_vedic_chart]\n[astrology_suite_vedic_workbench]\n[astrology_suite_astrology_bot]"); ?></code></pre>
                 <p><?php esc_html_e('Supported shortcode modes are chart-only, report-only, chart-report, simple-sign-sun, simple-sign-moon, simple-sign-rising, simple-sign-midheaven, ephemeris, daily-horoscope, personalized-horoscope, vedic-chart, vedic-workbench, and astrology-bot.', 'astrology-suite-freeastroapi'); ?></p>
-                <p><?php esc_html_e('Shortcode attributes: mode, include_interpretation, interpretation_style, language/lang, and class. Supported UI language values are auto, en, vi, fr, es, de, and pt. The API tab controls the natal interpretation response language separately. Legacy openastro, openastro_*, freeastro, and freeastro_* shortcode aliases are also registered.', 'astrology-suite-freeastroapi'); ?></p>
+                <p><?php esc_html_e('Shortcode attributes: mode, include_interpretation, interpretation_style, language/lang, class, and the Vedic overrides preset, layout, divisions, and modules. Example: [astrology_suite_vedic_workbench preset="custom" layout="south_indian" divisions="1,9,10" modules="yogas,panchang"]. Supported UI language values are auto, en, vi, fr, es, de, and pt. Legacy openastro, openastro_*, freeastro, and freeastro_* shortcode aliases are also registered.', 'astrology-suite-freeastroapi'); ?></p>
 
                 <h3><?php esc_html_e('All Available Shortcodes', 'astrology-suite-freeastroapi'); ?></h3>
                 <p><?php esc_html_e('Use the Astrology Suite shortcodes for new pages. The OpenAstro and FreeAstro names are legacy aliases kept for older content.', 'astrology-suite-freeastroapi'); ?></p>
@@ -4981,12 +5275,12 @@ JSON
                 <hr />
                 <h2><?php esc_html_e('Settings Tabs', 'astrology-suite-freeastroapi'); ?></h2>
                 <ul>
-                    <li><?php esc_html_e('API stores the site owner’s FreeAstroAPI key, plan-aware requests-per-second limit, Astrology Bot Gemini key/model, public calculation access, frontend widget language, and natal interpretation response language.', 'astrology-suite-freeastroapi'); ?></li>
+                    <li><?php esc_html_e('API stores the site owner’s FreeAstroAPI key, plan-aware requests-per-second limit, public calculation access, frontend widget language, and natal interpretation response language. WordPress 7.0+ configures the optional Astrology Bot through Settings > Connectors; legacy Gemini fields remain for older WordPress versions.', 'astrology-suite-freeastroapi'); ?></li>
                     <li><?php esc_html_e('Report controls interpretation length, report limits, angle sections, birth context, planet aspect links, aspect glyphs, thematic interpretation, chart print button, and tables.', 'astrology-suite-freeastroapi'); ?></li>
                     <li><?php esc_html_e('Custom Chart controls SVG/PNG chart theme bodies, FreeAstroAPI-generated preview cards, and optional advanced chart_config JSON.', 'astrology-suite-freeastroapi'); ?></li>
-                    <li><?php esc_html_e('Vedic Chart controls the frontend Kundli layout, built-in theme, node type, sign and graha labels, titles, colors, sizing, and the generated D1/D9 settings preview. H1–H12 house labels remain hidden.', 'astrology-suite-freeastroapi'); ?></li>
+                    <li><?php esc_html_e('Vedic Astrology groups reading presets, chart defaults, workbench modules, result appearance, and an on-demand cached preview into one tab. H1–H12 house labels remain hidden.', 'astrology-suite-freeastroapi'); ?></li>
                     <li><?php esc_html_e('Objects controls the Western house system and which extra points are requested and rendered. The lunar-node selector permits True Node, Mean Node, or no node, but never both variants in one calculation.', 'astrology-suite-freeastroapi'); ?></li>
-                    <li><?php esc_html_e('Style controls the container and form appearance plus dedicated Vedic result surfaces, tiles, table headers, badges, horoscope cards, and Astrology Bot chat colors. Its Vedic preview does not call the API.', 'astrology-suite-freeastroapi'); ?></li>
+                    <li><?php esc_html_e('Style controls the shared container and form appearance plus horoscope cards and Astrology Bot chat colors. Vedic result surfaces and tiles now live under Vedic Astrology → Appearance, where their no-request preview does not call the API.', 'astrology-suite-freeastroapi'); ?></li>
                     <li><?php esc_html_e('Ephemeris Style controls the monthly table preview, grid, header, badge, today row, retrograde, ingress, and station colors.', 'astrology-suite-freeastroapi'); ?></li>
                     <li><?php esc_html_e('Typography controls heading, body, table, input, button, and helper text sizes.', 'astrology-suite-freeastroapi'); ?></li>
                 </ul>
@@ -7065,7 +7359,7 @@ Astrology Bot Elements:
             'node_type' => $node_type,
         ];
 
-        $supported_divisions = [1, 2, 3, 7, 9, 10, 12, 30, 60];
+        $supported_divisions = $visual ? self::VEDIC_VISUAL_DIVISIONS : self::VEDIC_CALCULATION_DIVISIONS;
         $requested_divisions = $payload[$visual ? 'divisions' : 'vargas'] ?? [1, 9];
         if (!is_array($requested_divisions)) {
             $requested_divisions = [1, 9];
@@ -7591,6 +7885,10 @@ Astrology Bot Elements:
             'language' => '',
             'lang' => '',
             'class' => '',
+            'preset' => '',
+            'layout' => '',
+            'divisions' => '',
+            'modules' => '',
         ];
         $parsed = shortcode_atts($defaults, $raw_atts, $tag);
         $mode = self::shortcode_mode_from_tag($tag, (string) ($parsed['mode'] ?: $parsed['type']));
@@ -7609,6 +7907,10 @@ Astrology Bot Elements:
             'interpretation_style' => self::normalize_interpretation_style((string) $interpretation_style),
             'language' => self::normalize_frontend_language((string) $language),
             'class' => (string) $parsed['class'],
+            'vedic_preset' => (string) $parsed['preset'],
+            'vedic_layout' => (string) $parsed['layout'],
+            'vedic_divisions' => (string) $parsed['divisions'],
+            'vedic_modules' => (string) $parsed['modules'],
         ]);
     }
 
@@ -7665,13 +7967,26 @@ Astrology Bot Elements:
                 'part_of_fortune' => (bool) self::get_option_value(self::OPTION_OBJ_PART_OF_FORTUNE, true),
             ],
             'vedic' => [
+                'preset' => $vedic_settings['default_preset'],
                 'chartStyle' => $vedic_settings['chart_style'],
                 'themeType' => $vedic_settings['theme_type'],
                 'nodeType' => $vedic_settings['node_type'],
+                'ayanamsha' => $vedic_settings['ayanamsha'],
                 'signLabelMode' => $vedic_settings['sign_label_mode'],
                 'bodyLabelMode' => $vedic_settings['body_label_mode'],
                 'size' => (int) $vedic_settings['size'],
                 'includeOuterPlanets' => !empty($vedic_settings['include_outer_planets']),
+                'defaultDivisions' => array_values(array_map('intval', (array) $vedic_settings['default_divisions'])),
+                'dashaLevels' => (int) $vedic_settings['dasha_levels'],
+                'modules' => [
+                    'yogas' => !empty($vedic_settings['include_yogas']),
+                    'panchang' => !empty($vedic_settings['include_panchang']),
+                    'shadbala' => !empty($vedic_settings['include_shadbala']),
+                    'ashtakavarga' => !empty($vedic_settings['include_ashtakavarga']),
+                    'avastha' => !empty($vedic_settings['include_avastha']),
+                ],
+                'calculationDivisions' => self::VEDIC_CALCULATION_DIVISIONS,
+                'visualDivisions' => self::VEDIC_VISUAL_DIVISIONS,
             ],
             'vedicStyle' => [
                 'surfaceBgColor' => (string) self::get_option_value(self::OPTION_VEDIC_SURFACE_BG_COLOR, $vedic_style[self::OPTION_VEDIC_SURFACE_BG_COLOR]),
@@ -7888,8 +8203,13 @@ Astrology Bot Elements:
                 ];
 
                 if (in_array($slug, ['vedic-chart', 'vedic-workbench'], true)) {
-                    $settings['render_callback'] = static function () use ($slug): string {
-                        return self::render_widget_container($slug);
+                    $settings['render_callback'] = static function (array $attributes = []) use ($slug): string {
+                        return self::render_widget_container($slug, [
+                            'vedic_preset' => $attributes['vedicPreset'] ?? '',
+                            'vedic_layout' => $attributes['vedicLayout'] ?? '',
+                            'vedic_divisions' => $attributes['vedicDivisions'] ?? [],
+                            'vedic_modules' => $attributes['vedicModules'] ?? [],
+                        ]);
                     };
                 }
 
@@ -7954,6 +8274,52 @@ Astrology Bot Elements:
         return implode(' ', array_unique($clean));
     }
 
+    private static function normalize_vedic_preset($value): string
+    {
+        $preset = sanitize_key((string) $value);
+        return in_array($preset, ['guided', 'practitioner', 'custom'], true) ? $preset : '';
+    }
+
+    private static function normalize_vedic_layout($value): string
+    {
+        $layout = sanitize_key((string) $value);
+        return in_array($layout, ['north_indian', 'south_indian', 'east_indian'], true) ? $layout : '';
+    }
+
+    private static function normalize_vedic_divisions($value, string $mode): array
+    {
+        $values = is_array($value) ? $value : preg_split('/[\s,]+/', (string) $value);
+        $allowed = $mode === 'vedic-workbench'
+            ? self::VEDIC_CALCULATION_DIVISIONS
+            : self::VEDIC_VISUAL_DIVISIONS;
+        $divisions = [];
+
+        foreach (is_array($values) ? $values : [] as $division) {
+            $division = (int) $division;
+            if (in_array($division, $allowed, true) && !in_array($division, $divisions, true)) {
+                $divisions[] = $division;
+            }
+        }
+
+        return array_values(array_intersect($allowed, $divisions));
+    }
+
+    private static function normalize_vedic_modules($value): array
+    {
+        $values = is_array($value) ? $value : preg_split('/[\s,]+/', (string) $value);
+        $allowed = ['yogas', 'panchang', 'shadbala', 'ashtakavarga', 'avastha'];
+        $modules = [];
+
+        foreach (is_array($values) ? $values : [] as $module) {
+            $module = sanitize_key((string) $module);
+            if (in_array($module, $allowed, true) && !in_array($module, $modules, true)) {
+                $modules[] = $module;
+            }
+        }
+
+        return array_values(array_intersect($allowed, $modules));
+    }
+
     private static function render_widget_container(string $mode, array $attrs = []): string
     {
         $mode = self::normalize_widget_mode($mode);
@@ -7962,14 +8328,32 @@ Astrology Bot Elements:
         $language = self::normalize_frontend_language((string) ($attrs['language'] ?? 'auto'));
         $extra_class = self::sanitize_class_list((string) ($attrs['class'] ?? ''));
         $classes = trim('wp-block-astrology-suite-widget' . ($extra_class !== '' ? ' ' . $extra_class : ''));
+        $vedic_preset = self::normalize_vedic_preset($attrs['vedic_preset'] ?? '');
+        $vedic_layout = self::normalize_vedic_layout($attrs['vedic_layout'] ?? '');
+        $vedic_divisions = self::normalize_vedic_divisions($attrs['vedic_divisions'] ?? [], $mode);
+        $vedic_modules = self::normalize_vedic_modules($attrs['vedic_modules'] ?? []);
+        $vedic_attributes = '';
+        if ($vedic_preset !== '') {
+            $vedic_attributes .= ' data-vedic-preset="' . esc_attr($vedic_preset) . '"';
+        }
+        if ($vedic_layout !== '') {
+            $vedic_attributes .= ' data-vedic-layout="' . esc_attr($vedic_layout) . '"';
+        }
+        if ($vedic_divisions !== []) {
+            $vedic_attributes .= ' data-vedic-divisions="' . esc_attr(implode(',', $vedic_divisions)) . '"';
+        }
+        if ($vedic_modules !== [] || $vedic_preset === 'custom') {
+            $vedic_attributes .= ' data-vedic-modules="' . esc_attr(implode(',', $vedic_modules)) . '"';
+        }
 
         return sprintf(
-            '<div class="%1$s" data-astrology-suite-widget="1" data-mode="%2$s" data-include-interpretation="%3$s" data-interpretation-style="%4$s" data-language="%5$s"></div>',
+            '<div class="%1$s" data-astrology-suite-widget="1" data-mode="%2$s" data-include-interpretation="%3$s" data-interpretation-style="%4$s" data-language="%5$s"%6$s></div>',
             esc_attr($classes),
             esc_attr($mode),
             $include_interpretation ? '1' : '0',
             esc_attr($interpretation_style),
-            esc_attr($language)
+            esc_attr($language),
+            $vedic_attributes
         );
     }
 }

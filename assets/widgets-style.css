@@ -1816,6 +1816,25 @@
   line-height: 1.45;
 }
 
+.openastro-vedic-options > details {
+  flex-basis: 100%;
+}
+
+.openastro-vedic-division-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  padding: 0 14px 14px;
+}
+
+.openastro-vedic-control {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--astrology-suite-label-color, var(--openastro-label-color));
+  font-weight: var(--astrology-suite-label-weight, var(--openastro-label-weight));
+}
+
 .openastro-vedic-advanced,
 .openastro-vedic-section {
   border: 1px solid var(--astrology-suite-vedic-tile-border, var(--openastro-vedic-tile-border, #e5d6c6));
@@ -1836,6 +1855,10 @@
 
 .openastro-vedic-advanced > .openastro-vedic-control-grid {
   padding: 0 14px 14px;
+}
+
+.openastro-vedic-workbench-options > .openastro-vedic-options {
+  margin: 0 14px 14px;
 }
 
 .openastro-vedic-output {
@@ -1872,6 +1895,55 @@
 
 .openastro-vedic-chart .vedic-astrofont {
   font-family: "AstrologySuiteStarFont", serif !important;
+}
+
+.openastro-vedic-result-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 16px 0 12px;
+  padding-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.openastro-vedic-result-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--astrology-suite-vedic-tile-border, var(--openastro-vedic-tile-border, #e5d6c6));
+  border-radius: 999px;
+  background: var(--astrology-suite-vedic-tile-bg, var(--openastro-vedic-tile-bg, #f8f2ea));
+  color: var(--astrology-suite-vedic-tile-text, var(--openastro-vedic-tile-text, #29211c));
+  font: inherit;
+  font-size: var(--astrology-suite-font-meta, var(--openastro-font-meta));
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.openastro-vedic-result-tab:hover,
+.openastro-vedic-result-tab:focus-visible,
+.openastro-vedic-result-tab.is-active {
+  border-color: var(--astrology-suite-vedic-accent, var(--openastro-vedic-accent, #ac3b32));
+  background: var(--astrology-suite-vedic-accent, var(--openastro-vedic-accent, #ac3b32));
+  color: #fff;
+}
+
+.openastro-vedic-result-tab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--astrology-suite-vedic-accent, var(--openastro-vedic-accent, #ac3b32)) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.openastro-vedic-result-panel {
+  margin-top: 0;
+}
+
+.openastro-vedic-result-panel[hidden] {
+  display: none;
+}
+
+.openastro-vedic-helper {
+  margin: 14px;
 }
 
 .openastro-vedic-heading {
@@ -2086,7 +2158,12 @@
 }
 
 @media (max-width: 760px) {
+  .openastro-vedic-result-tabs {
+    flex-wrap: nowrap;
+  }
+
   .openastro-vedic-control-grid,
+  .openastro-vedic-division-grid,
   .openastro-vedic-dasha-grid,
   .openastro-vedic-yoga-grid,
   .openastro-vedic-varga-grid {

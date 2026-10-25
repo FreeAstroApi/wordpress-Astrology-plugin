@@ -47,6 +47,7 @@ The site owner saves one FreeAstroAPI key in `Settings > Astrology Suite > API` 
   - `[astrology_suite_personalized_horoscope]`
   - `[astrology_suite_vedic_chart]`
   - `[astrology_suite_vedic_workbench]`
+  - `[astrology_suite_vedic_workbench preset="custom" layout="south_indian" divisions="1,9,10" modules="yogas,panchang,shadbala"]`
   - `[astrology_suite_astrology_bot]`
 
 ## Notes
@@ -55,10 +56,12 @@ The site owner saves one FreeAstroAPI key in `Settings > Astrology Suite > API` 
 - `Ephemeris` renders a monthly FreeAstroAPI table grid with body filters, tropical/sidereal mode, optional city for local points, CSV download, and table-specific style controls.
 - `Daily Horoscope` renders a sign/date/timezone form and uses the FreeAstroAPI Daily Sign Horoscope endpoint for scores, lucky attributes, guidance, and sky highlights.
 - `Personalized Horoscope` renders birth details, city autocomplete, target date, and a personalized daily horoscope using current sky timing and personal transit context.
-- `Vedic Visual Chart` renders D1, D9, or other supported vargas in North, South, or East Indian layouts with configurable themes and graha label styles.
-- `Vedic Astrology Workbench` adds practitioner controls and readable references for graha positions, active Vimshottari dashas, yogas/doshas, birth Panchang, Shadbala, Ashtakavarga, and selected vargas.
-- `Settings > Astrology Suite > Vedic Chart` controls the frontend Vedic layout, theme, node, sign/graha labels, optional outer planets, titles, colors, sizing overrides, and an API-generated D1/D9 preview. House labels remain hidden.
-- `Settings > Astrology Suite > Style` includes a no-request live preview and dedicated Vedic controls for workbench surfaces, text, borders, accents, summary tiles, table headers, and badges.
+- `Vedic Visual Chart` renders every divisional chart supported by the FreeAstroAPI visual endpoint, including D1, D9, D10, D16, D20, D24, D27, D40, D45, and D60.
+- `Vedic Astrology Workbench` presents grahas, active Vimshottari dashas, yogas/doshas, birth Panchang, Shadbala, Ashtakavarga, and vargas in a compact section navigator.
+- `Settings > Astrology Suite > Vedic Astrology` consolidates Essentials, Charts, Workbench, Appearance, and Preview without adding another top-level settings tab.
+- Guided, Practitioner, and Custom presets establish simple defaults for public pages or a full practitioner workflow. Both Vedic blocks can override the preset, layout, divisions, and modules.
+- Vedic result appearance now lives in the same Vedic workspace, and generated chart previews run only when explicitly requested.
+- The block editor exposes Vedic overrides in a dedicated `Vedic Options` panel instead of adding controls to the main block toolbar.
 - `Astrology Bot` renders a Western/Vedic chat component with birth profile collection. The saved FreeAstroAPI key powers MCP astrology tool calls. On WordPress 7.0+, connect Google under `Settings > Connectors` for the answer layer; the legacy Gemini field is only for older WordPress versions.
 - Report rendering can be customized in plugin settings.
 - `Settings > Astrology Suite > Objects` selects one Western house system and one lunar-node mode (True, Mean, or None) for all Western natal outputs.
@@ -84,13 +87,13 @@ The site owner saves one FreeAstroAPI key in `Settings > Astrology Suite > API` 
 
 ![Frontend Vedic Visual Chart with generated D1 and D9 charts](assets/screenshots/screenshot-12-vedic-visual-chart.png)
 
-### Vedic Chart settings
+### Vedic Astrology settings
 
-![Vedic Chart settings with generated D1 and D9 preview](assets/screenshots/screenshot-13-vedic-chart-settings.png)
+![Consolidated Vedic Astrology settings with presets and calculation defaults](assets/screenshots/screenshot-13-vedic-chart-settings.png)
 
-### Vedic style preview
+### Vedic appearance preview
 
-![Style settings with the instant no-request Vedic preview](assets/screenshots/screenshot-14-vedic-style-preview.png)
+![Vedic appearance settings with the instant no-request result preview](assets/screenshots/screenshot-14-vedic-style-preview.png)
 
 ### Vedic Astrology Workbench
 
