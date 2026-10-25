@@ -5,6 +5,7 @@
   var PanelBody = components.PanelBody;
   var ToggleControl = components.ToggleControl;
   var SelectControl = components.SelectControl;
+  var CheckboxControl = components.CheckboxControl;
 
   function blockSlug(def) {
     return def.name.split('/')[1] || '';
@@ -12,6 +13,89 @@
 
   function isSimpleSign(def) {
     return blockSlug(def).indexOf('simple-sign-') === 0;
+  }
+
+  function isVedic(def) {
+    return ['vedic-chart', 'vedic-workbench'].indexOf(blockSlug(def)) !== -1;
+  }
+
+  function isVedicWorkbench(def) {
+    return blockSlug(def) === 'vedic-workbench';
+  }
+
+  function toggleArrayValue(values, value, checked) {
+    var next = Array.isArray(values) ? values.slice() : [];
+    var index = next.indexOf(value);
+    if (checked && index === -1) next.push(value);
+    if (!checked && index !== -1) next.splice(index, 1);
+    return next.sort(function (a, b) { return Number(a) - Number(b); });
+  }
+
+  function vedicInspector(def, attrs, setAttributes) {
+    var workbench = isVedicWorkbench(def);
+    var custom = attrs.vedicPreset === 'custom';
+    var divisions = workbench
+      ? [[1, 'D1 Rashi'], [2, 'D2 Hora'], [3, 'D3 Drekkana'], [7, 'D7 Saptamsha'], [9, 'D9 Navamsha'], [10, 'D10 Dashamsha'], [12, 'D12 Dwadashamsha'], [30, 'D30 Trimshamsha'], [60, 'D60 Shashtiamsha']]
+      : [[1, 'D1 Rashi'], [2, 'D2 Hora'], [3, 'D3 Drekkana'], [4, 'D4 Chaturthamsha'], [5, 'D5 Panchamsha'], [7, 'D7 Saptamsha'], [9, 'D9 Navamsha'], [10, 'D10 Dashamsha'], [12, 'D12 Dwadashamsha'], [16, 'D16 Shodashamsha'], [20, 'D20 Vimshamsha'], [24, 'D24 Chaturvimshamsha'], [27, 'D27 Saptavimshamsha'], [30, 'D30 Trimshamsha'], [40, 'D40 Khavedamsha'], [45, 'D45 Akshavedamsha'], [60, 'D60 Shashtiamsha']];
+    var modules = [['yogas', 'Yogas and doshas'], ['panchang', 'Birth Panchang'], ['shadbala', 'Shadbala strength'], ['ashtakavarga', 'Ashtakavarga'], ['avastha', 'Baladi Avastha']];
+
+    return el(PanelBody, {
+      key: 'vedic-panel',
+      title: i18n.__('Vedic Options', 'astrology-suite-freeastroapi'),
+      initialOpen: true
+    }, [
+      el(SelectControl, {
+        key: 'vedic-preset',
+        label: i18n.__('Experience preset', 'astrology-suite-freeastroapi'),
+        help: i18n.__('Guided is best for public visitors. Practitioner enables the complete reference workflow.', 'astrology-suite-freeastroapi'),
+        value: attrs.vedicPreset || '',
+        options: [
+          { label: i18n.__('Use site default', 'astrology-suite-freeastroapi'), value: '' },
+          { label: i18n.__('Guided', 'astrology-suite-freeastroapi'), value: 'guided' },
+          { label: i18n.__('Practitioner', 'astrology-suite-freeastroapi'), value: 'practitioner' },
+          { label: i18n.__('Custom', 'astrology-suite-freeastroapi'), value: 'custom' }
+        ],
+        onChange: function (value) { setAttributes({ vedicPreset: value }); }
+      }),
+      el(SelectControl, {
+        key: 'vedic-layout',
+        label: i18n.__('Kundli layout', 'astrology-suite-freeastroapi'),
+        value: attrs.vedicLayout || '',
+        options: [
+          { label: i18n.__('Use site default', 'astrology-suite-freeastroapi'), value: '' },
+          { label: i18n.__('North Indian', 'astrology-suite-freeastroapi'), value: 'north_indian' },
+          { label: i18n.__('South Indian', 'astrology-suite-freeastroapi'), value: 'south_indian' },
+          { label: i18n.__('East Indian', 'astrology-suite-freeastroapi'), value: 'east_indian' }
+        ],
+        onChange: function (value) { setAttributes({ vedicLayout: value }); }
+      }),
+      custom ? el('div', { key: 'custom-divisions' }, [
+        el('p', { key: 'divisions-label' }, el('strong', null, i18n.__('Divisional charts', 'astrology-suite-freeastroapi'))),
+        divisions.map(function (division) {
+          return el(CheckboxControl, {
+            key: 'division-' + division[0],
+            label: division[1],
+            checked: (attrs.vedicDivisions || []).indexOf(division[0]) !== -1,
+            onChange: function (checked) {
+              setAttributes({ vedicDivisions: toggleArrayValue(attrs.vedicDivisions, division[0], checked) });
+            }
+          });
+        })
+      ]) : null,
+      custom && workbench ? el('div', { key: 'custom-modules' }, [
+        el('p', { key: 'modules-label' }, el('strong', null, i18n.__('Result modules', 'astrology-suite-freeastroapi'))),
+        modules.map(function (module) {
+          return el(CheckboxControl, {
+            key: 'module-' + module[0],
+            label: module[1],
+            checked: (attrs.vedicModules || []).indexOf(module[0]) !== -1,
+            onChange: function (checked) {
+              setAttributes({ vedicModules: toggleArrayValue(attrs.vedicModules, module[0], checked) });
+            }
+          });
+        })
+      ]) : null
+    ]);
   }
 
   function registerWidgetBlock(def, isLegacy) {
@@ -29,6 +113,22 @@
         interpretationStyle: {
           type: 'string',
           default: 'improved'
+        },
+        vedicPreset: {
+          type: 'string',
+          default: ''
+        },
+        vedicLayout: {
+          type: 'string',
+          default: ''
+        },
+        vedicDivisions: {
+          type: 'array',
+          default: []
+        },
+        vedicModules: {
+          type: 'array',
+          default: []
         }
       },
       edit: function (props) {
@@ -68,6 +168,9 @@
                 ])
               ])
             : null,
+          isVedic(def)
+            ? el(InspectorControls, { key: 'vedic-inspector' }, [vedicInspector(def, attrs, setAttributes)])
+            : null,
           el('div', { key: 'preview', className: 'astrology-suite-editor-placeholder openastro-editor-placeholder' }, [
             el('strong', { key: 't' }, def.title),
             el('p', { key: 'd' }, def.description),
@@ -82,13 +185,19 @@
         var attrs = props.attributes || {};
         var includeInterpretation = attrs.includeInterpretation === false ? '0' : '1';
         var interpretationStyle = attrs.interpretationStyle === 'poetic' ? 'poetic' : 'improved';
+        var divisions = Array.isArray(attrs.vedicDivisions) ? attrs.vedicDivisions.join(',') : '';
+        var modules = Array.isArray(attrs.vedicModules) ? attrs.vedicModules.join(',') : '';
 
         return el('div', {
           className: 'wp-block-astrology-suite-widget',
           'data-astrology-suite-widget': '1',
           'data-mode': mode,
           'data-include-interpretation': includeInterpretation,
-          'data-interpretation-style': interpretationStyle
+          'data-interpretation-style': interpretationStyle,
+          'data-vedic-preset': attrs.vedicPreset || undefined,
+          'data-vedic-layout': attrs.vedicLayout || undefined,
+          'data-vedic-divisions': divisions || undefined,
+          'data-vedic-modules': modules || undefined
         });
       }
     });

@@ -121,6 +121,33 @@
     { id: 'aquarius', label: 'Aquarius' },
     { id: 'pisces', label: 'Pisces' }
   ];
+  var VEDIC_DIVISIONS = [
+    { id: 1, label: 'D1 Rashi', short: 'D1' },
+    { id: 2, label: 'D2 Hora', short: 'D2' },
+    { id: 3, label: 'D3 Drekkana', short: 'D3' },
+    { id: 4, label: 'D4 Chaturthamsha', short: 'D4' },
+    { id: 5, label: 'D5 Panchamsha', short: 'D5' },
+    { id: 7, label: 'D7 Saptamsha', short: 'D7' },
+    { id: 9, label: 'D9 Navamsha', short: 'D9' },
+    { id: 10, label: 'D10 Dashamsha', short: 'D10' },
+    { id: 12, label: 'D12 Dwadashamsha', short: 'D12' },
+    { id: 16, label: 'D16 Shodashamsha', short: 'D16' },
+    { id: 20, label: 'D20 Vimshamsha', short: 'D20' },
+    { id: 24, label: 'D24 Chaturvimshamsha', short: 'D24' },
+    { id: 27, label: 'D27 Saptavimshamsha', short: 'D27' },
+    { id: 30, label: 'D30 Trimshamsha', short: 'D30' },
+    { id: 40, label: 'D40 Khavedamsha', short: 'D40' },
+    { id: 45, label: 'D45 Akshavedamsha', short: 'D45' },
+    { id: 60, label: 'D60 Shashtiamsha', short: 'D60' }
+  ];
+  var VEDIC_CALCULATION_DIVISIONS = [1, 2, 3, 7, 9, 10, 12, 30, 60];
+  var VEDIC_MODULES = [
+    { id: 'yogas', field: 'include_yogas', label: 'Yogas and doshas' },
+    { id: 'panchang', field: 'include_panchang', label: 'Birth Panchang' },
+    { id: 'shadbala', field: 'include_shadbala', label: 'Shadbala strength' },
+    { id: 'ashtakavarga', field: 'include_ashtakavarga', label: 'Ashtakavarga' },
+    { id: 'avastha', field: 'include_avastha', label: 'Baladi Avastha' }
+  ];
   var HISTORY_KEY = 'openastro_history_v1';
   var HISTORY_LIMIT = 20;
   var TRANSLATIONS = {
@@ -2979,6 +3006,15 @@
     var moon = vedicPlanet(chart, 'Moon');
     var sun = vedicPlanet(chart, 'Sun');
     var sadeSati = chart.sade_sati || (data.yogas && data.yogas.sade_sati) || {};
+    var tabs = [];
+    var tabPrefix = 'openastro-vedic-tab-' + Math.random().toString(36).slice(2, 9);
+
+    function addTab(id, label, content) {
+      if (content) {
+        tabs.push({ id: id, label: label, content: content });
+      }
+    }
+
     var html = '<section class="' + expandClassNames('openastro-card openastro-vedic-report') + '">';
     html += '<div class="' + expandClassNames('openastro-vedic-heading') + '"><div><span class="' + expandClassNames('openastro-vedic-eyebrow') + '">Sidereal overview</span><h3>Vedic chart analysis</h3></div>';
     html += '<span class="' + expandClassNames('openastro-vedic-badge') + '">' + esc(String(data.ayanamsha || 'lahiri').toUpperCase()) + '</span></div>';
@@ -2992,38 +3028,41 @@
     var planets = Array.isArray(chart.planets) ? chart.planets : [];
     if (planets.length) {
       var hasAvastha = planets.some(function (planet) { return planet && planet.avastha && planet.avastha.state; });
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '" open><summary>Graha positions</summary><div class="' + expandClassNames('openastro-vedic-table-wrap') + '"><table><thead><tr><th>Graha</th><th>Rashi</th><th>Degree</th><th>Bhava</th><th>Nakshatra</th><th>Pada</th>' + (hasAvastha ? '<th>Baladi Avastha</th>' : '') + '</tr></thead><tbody>';
+      var grahaHtml = '<div class="' + expandClassNames('openastro-vedic-table-wrap') + '"><table><thead><tr><th>Graha</th><th>Rashi</th><th>Degree</th><th>Bhava</th><th>Nakshatra</th><th>Pada</th>' + (hasAvastha ? '<th>Baladi Avastha</th>' : '') + '</tr></thead><tbody>';
       planets.forEach(function (planet) {
         var avastha = planet.avastha || {};
-        html += '<tr><td><strong>' + esc(planet.name || '—') + (planet.is_retrograde ? ' ℞' : '') + '</strong></td><td>' + esc(planet.sign || '—') + '</td><td>' + esc(vedicNumber(planet.degree_in_sign, 2)) + '°</td><td>' + esc(planet.house || '—') + '</td><td>' + esc(planet.nakshatra || '—') + '</td><td>' + esc(planet.pada || '—') + '</td>' + (hasAvastha ? '<td><strong>' + esc(avastha.state || '—') + '</strong>' + (avastha.quality ? '<small> · ' + esc(avastha.quality) + '</small>' : '') + '</td>' : '') + '</tr>';
+        grahaHtml += '<tr><td><strong>' + esc(planet.name || '—') + (planet.is_retrograde ? ' ℞' : '') + '</strong></td><td>' + esc(planet.sign || '—') + '</td><td>' + esc(vedicNumber(planet.degree_in_sign, 2)) + '°</td><td>' + esc(planet.house || '—') + '</td><td>' + esc(planet.nakshatra || '—') + '</td><td>' + esc(planet.pada || '—') + '</td>' + (hasAvastha ? '<td><strong>' + esc(avastha.state || '—') + '</strong>' + (avastha.quality ? '<small> · ' + esc(avastha.quality) + '</small>' : '') + '</td>' : '') + '</tr>';
       });
-      html += '</tbody></table></div></details>';
+      grahaHtml += '</tbody></table></div>';
+      addTab('grahas', 'Grahas', grahaHtml);
     }
 
     var dasha = data.vimshottari_dasha || {};
     var activePeriods = Array.isArray(dasha.active_periods) ? dasha.active_periods : [];
     if (activePeriods.length) {
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '" open><summary>Active Vimshottari dasha</summary><div class="' + expandClassNames('openastro-vedic-dasha-grid') + '">';
+      var dashaHtml = '<div class="' + expandClassNames('openastro-vedic-dasha-grid') + '">';
       activePeriods.forEach(function (period) {
         var progress = Math.max(0, Math.min(100, Number(period.progress_fraction || 0) * 100));
-        html += '<article><span>' + esc(period.level || 'Dasha') + '</span><strong>' + esc(period.lord || '—') + '</strong><small>' + esc(period.start || '—') + ' → ' + esc(period.end || '—') + '</small><div class="' + expandClassNames('openastro-vedic-progress') + '"><i style="width:' + progress.toFixed(1) + '%"></i></div></article>';
+        dashaHtml += '<article><span>' + esc(period.level || 'Dasha') + '</span><strong>' + esc(period.lord || '—') + '</strong><small>' + esc(period.start || '—') + ' → ' + esc(period.end || '—') + '</small><div class="' + expandClassNames('openastro-vedic-progress') + '"><i style="width:' + progress.toFixed(1) + '%"></i></div></article>';
       });
-      html += '</div></details>';
+      dashaHtml += '</div>';
+      addTab('dashas', 'Dashas', dashaHtml);
     }
 
     var yogaData = data.yogas || {};
     var yogas = Array.isArray(yogaData.yogas) ? yogaData.yogas.filter(function (yoga) { return yoga && yoga.active; }) : [];
     if (yogas.length) {
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '" open><summary>Active yogas and doshas <span>' + yogas.length + '</span></summary><div class="' + expandClassNames('openastro-vedic-yoga-grid') + '">';
+      var yogaHtml = '<div class="' + expandClassNames('openastro-vedic-yoga-grid') + '">';
       yogas.forEach(function (yoga) {
         var evidence = Array.isArray(yoga.evidence) ? yoga.evidence : [];
-        html += '<article><div><span>' + esc(yoga.category || yoga.type || 'Yoga') + '</span>' + (yoga.strength ? '<em>' + esc(yoga.strength) + '</em>' : '') + '</div><h4>' + esc(yoga.name || 'Yoga') + '</h4><p>' + esc(yoga.description || '') + '</p>';
+        yogaHtml += '<article><div><span>' + esc(yoga.category || yoga.type || 'Yoga') + '</span>' + (yoga.strength ? '<em>' + esc(yoga.strength) + '</em>' : '') + '</div><h4>' + esc(yoga.name || 'Yoga') + '</h4><p>' + esc(yoga.description || '') + '</p>';
         if (evidence.length) {
-          html += '<details><summary>Evidence</summary><ul>' + evidence.map(function (item) { return '<li>' + esc(vedicOrdinalText(item.message || item.kind || '')) + '</li>'; }).join('') + '</ul></details>';
+          yogaHtml += '<details><summary>Evidence</summary><ul>' + evidence.map(function (item) { return '<li>' + esc(vedicOrdinalText(item.message || item.kind || '')) + '</li>'; }).join('') + '</ul></details>';
         }
-        html += '</article>';
+        yogaHtml += '</article>';
       });
-      html += '</div></details>';
+      yogaHtml += '</div>';
+      addTab('yogas', 'Yogas', yogaHtml);
     }
 
     var panchang = data.panchang || {};
@@ -3036,46 +3075,64 @@
         ['Sunrise', panchang.sunrise, 'Sunset ' + (panchang.sunset || '—')],
         ['Rahu Kalam', panchang.rahu_kalam && panchang.rahu_kalam.start, panchang.rahu_kalam && panchang.rahu_kalam.end]
       ];
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '"><summary>Birth Panchang</summary><div class="' + expandClassNames('openastro-vedic-panchang-grid') + '">';
+      var panchangHtml = '<div class="' + expandClassNames('openastro-vedic-panchang-grid') + '">';
       panchangItems.forEach(function (item) {
-        html += '<article><span>' + esc(item[0]) + '</span><strong>' + esc(item[1] || '—') + '</strong><small>' + esc(item[2] || '') + '</small></article>';
+        panchangHtml += '<article><span>' + esc(item[0]) + '</span><strong>' + esc(item[1] || '—') + '</strong><small>' + esc(item[2] || '') + '</small></article>';
       });
-      html += '</div></details>';
+      panchangHtml += '</div>';
+      addTab('panchang', 'Panchang', panchangHtml);
     }
 
     var shadbala = data.shadbala && typeof data.shadbala === 'object' ? data.shadbala : {};
     var strengthNames = Object.keys(shadbala).filter(function (name) { return shadbala[name] && typeof shadbala[name] === 'object'; });
     if (strengthNames.length) {
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '"><summary>Shadbala strength</summary><div class="' + expandClassNames('openastro-vedic-table-wrap') + '"><table><thead><tr><th>Graha</th><th>Rupas</th><th>Minimum</th><th>Ratio</th><th>Assessment</th></tr></thead><tbody>';
+      var strengthHtml = '<div class="' + expandClassNames('openastro-vedic-table-wrap') + '"><table><thead><tr><th>Graha</th><th>Rupas</th><th>Minimum</th><th>Ratio</th><th>Assessment</th></tr></thead><tbody>';
       strengthNames.forEach(function (name) {
         var strength = shadbala[name];
         var ratio = Number(strength.ratio || 0);
-        html += '<tr><td><strong>' + esc(name) + '</strong></td><td>' + esc(vedicNumber(strength.shadbala_in_rupas, 2)) + '</td><td>' + esc(vedicNumber(strength.minimum_requirements, 2)) + '</td><td>' + esc(vedicNumber(ratio, 2)) + '</td><td><span class="' + expandClassNames('openastro-vedic-strength ' + (ratio >= 1 ? 'is-sufficient' : 'is-low')) + '">' + (ratio >= 1 ? 'Meets minimum' : 'Below minimum') + '</span></td></tr>';
+        strengthHtml += '<tr><td><strong>' + esc(name) + '</strong></td><td>' + esc(vedicNumber(strength.shadbala_in_rupas, 2)) + '</td><td>' + esc(vedicNumber(strength.minimum_requirements, 2)) + '</td><td>' + esc(vedicNumber(ratio, 2)) + '</td><td><span class="' + expandClassNames('openastro-vedic-strength ' + (ratio >= 1 ? 'is-sufficient' : 'is-low')) + '">' + (ratio >= 1 ? 'Meets minimum' : 'Below minimum') + '</span></td></tr>';
       });
-      html += '</tbody></table></div></details>';
+      strengthHtml += '</tbody></table></div>';
+      addTab('strength', 'Strength', strengthHtml);
     }
 
     var ashtaka = data.ashtakavarga || {};
     var sarva = Array.isArray(ashtaka.sarvashtakavarga) ? ashtaka.sarvashtakavarga : [];
     if (sarva.length === 12) {
       var signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '"><summary>Sarvashtakavarga <span>Total ' + esc(ashtaka.total_points || sarva.reduce(function (sum, value) { return sum + Number(value || 0); }, 0)) + '</span></summary><div class="' + expandClassNames('openastro-vedic-ashtaka-grid') + '">';
+      var ashtakaHtml = '<p class="openastro-vedic-helper">Total points: <strong>' + esc(ashtaka.total_points || sarva.reduce(function (sum, value) { return sum + Number(value || 0); }, 0)) + '</strong></p><div class="' + expandClassNames('openastro-vedic-ashtaka-grid') + '">';
       sarva.forEach(function (points, index) {
-        html += '<article><span>' + esc(signs[index]) + '</span><strong>' + esc(points) + '</strong></article>';
+        ashtakaHtml += '<article><span>' + esc(signs[index]) + '</span><strong>' + esc(points) + '</strong></article>';
       });
-      html += '</div></details>';
+      ashtakaHtml += '</div>';
+      addTab('ashtakavarga', 'Ashtakavarga', ashtakaHtml);
     }
 
     var vargaRoot = data.vargas && data.vargas.vargas ? data.vargas.vargas : {};
     var vargaNames = Object.keys(vargaRoot);
     if (vargaNames.length) {
-      html += '<details class="' + expandClassNames('openastro-vedic-section') + '"><summary>Varga reference <span>' + vargaNames.length + ' charts</span></summary><div class="' + expandClassNames('openastro-vedic-varga-grid') + '">';
+      var vargaHtml = '<div class="' + expandClassNames('openastro-vedic-varga-grid') + '">';
       vargaNames.forEach(function (key) {
         var varga = vargaRoot[key] || {};
         var placements = Array.isArray(varga.planets) ? varga.planets : [];
-        html += '<article><div><strong>' + esc(key) + ' · ' + esc(varga.name || 'Divisional chart') + '</strong><span>Lagna ' + esc(varga.ascendant && varga.ascendant.sign ? varga.ascendant.sign : '—') + '</span></div><p>' + placements.map(function (planet) { return esc((planet.name || '—') + ' ' + (planet.sign || '—') + ' H' + (planet.house || '—')); }).join(' · ') + '</p></article>';
+        vargaHtml += '<article><div><strong>' + esc(key) + ' · ' + esc(varga.name || 'Divisional chart') + '</strong><span>Lagna ' + esc(varga.ascendant && varga.ascendant.sign ? varga.ascendant.sign : '—') + '</span></div><p>' + placements.map(function (planet) { return esc((planet.name || '—') + ' ' + (planet.sign || '—') + ' H' + (planet.house || '—')); }).join(' · ') + '</p></article>';
       });
-      html += '</div></details>';
+      vargaHtml += '</div>';
+      addTab('vargas', 'Vargas', vargaHtml);
+    }
+
+    if (tabs.length) {
+      html += '<div class="' + expandClassNames('openastro-vedic-result-tabs') + '" role="tablist" aria-label="Vedic result sections">';
+      tabs.forEach(function (tab, index) {
+        var tabId = tabPrefix + '-' + tab.id;
+        html += '<button type="button" role="tab" id="' + esc(tabId + '-tab') + '" aria-controls="' + esc(tabId) + '" aria-selected="' + (index === 0 ? 'true' : 'false') + '" tabindex="' + (index === 0 ? '0' : '-1') + '" class="' + expandClassNames('openastro-vedic-result-tab' + (index === 0 ? ' is-active' : '')) + '" data-openastro-vedic-tab="' + esc(tab.id) + '">' + esc(tab.label) + '</button>';
+      });
+      html += '</div><div class="' + expandClassNames('openastro-vedic-result-panels') + '">';
+      tabs.forEach(function (tab, index) {
+        var tabId = tabPrefix + '-' + tab.id;
+        html += '<section role="tabpanel" id="' + esc(tabId) + '" aria-labelledby="' + esc(tabId + '-tab') + '" class="' + expandClassNames('openastro-vedic-section openastro-vedic-result-panel') + '" data-openastro-vedic-panel="' + esc(tab.id) + '"' + (index === 0 ? '' : ' hidden') + '>' + tab.content + '</section>';
+      });
+      html += '</div>';
     }
 
     html += '<p class="' + expandClassNames('openastro-vedic-disclaimer') + '">Astrology-oriented information for reflection; it is not medical, legal, financial, or psychological advice.</p>';
@@ -3086,6 +3143,22 @@
   function mountVedic(container, cfg, mode) {
     var workbench = mode === 'vedic-workbench';
     var vedicCfg = cfg.vedic || {};
+    var presetOverride = container.getAttribute('data-vedic-preset') || '';
+    var layoutOverride = container.getAttribute('data-vedic-layout') || '';
+    var divisionsOverride = (container.getAttribute('data-vedic-divisions') || '').split(',').map(Number).filter(function (value) { return value > 0; });
+    var hasModulesOverride = container.hasAttribute('data-vedic-modules');
+    var modulesOverride = (container.getAttribute('data-vedic-modules') || '').split(',').filter(Boolean);
+    var defaultPreset = ['guided', 'practitioner', 'custom'].indexOf(presetOverride) !== -1
+      ? presetOverride
+      : (['guided', 'practitioner', 'custom'].indexOf(vedicCfg.preset) !== -1 ? vedicCfg.preset : 'guided');
+    var calculationDivisions = Array.isArray(vedicCfg.calculationDivisions) && vedicCfg.calculationDivisions.length
+      ? vedicCfg.calculationDivisions.map(Number)
+      : VEDIC_CALCULATION_DIVISIONS;
+    var allowedDivisionIds = workbench ? calculationDivisions : VEDIC_DIVISIONS.map(function (item) { return item.id; });
+    var availableDivisions = VEDIC_DIVISIONS.filter(function (division) {
+      return allowedDivisionIds.indexOf(division.id) !== -1;
+    });
+    var configuredDivisions = divisionsOverride.length ? divisionsOverride : (Array.isArray(vedicCfg.defaultDivisions) ? vedicCfg.defaultDivisions.map(Number) : [1, 9]);
     var shell = create('section', { class: 'openastro-vedic' });
     var intro = create('div', { class: 'openastro-vedic-intro' });
     intro.appendChild(create('span', { class: 'openastro-vedic-eyebrow' }, workbench ? 'For Vedic astrologers and curious users' : 'Sidereal chart renderer'));
@@ -3096,8 +3169,9 @@
 
     var form = create('form', { class: 'openastro-form openastro-vedic-form' });
     var preset = create('select', { class: 'openastro-input', 'aria-label': 'Vedic detail preset' });
-    preset.appendChild(create('option', { value: 'personal' }, 'Personal reading · essentials'));
+    preset.appendChild(create('option', { value: 'guided' }, 'Guided · essentials'));
     preset.appendChild(create('option', { value: 'practitioner' }, 'Practitioner · full reference'));
+    preset.appendChild(create('option', { value: 'custom' }, 'Custom · use selections'));
     var date = create('input', { type: 'date', class: 'openastro-input', 'aria-label': 'Birth date' });
     var time = createTimeControls('en');
     var cityId = 'openastro-vedic-city-' + Math.random().toString(36).slice(2, 10);
@@ -3122,18 +3196,26 @@
     var divisionField = create('fieldset', { class: 'openastro-vedic-options' });
     divisionField.appendChild(create('legend', null, 'Divisional charts'));
     var divisionChecks = {};
-    [
-      [1, 'D1 Rashi'], [2, 'D2 Hora'], [3, 'D3 Drekkana'], [7, 'D7 Saptamsha'], [9, 'D9 Navamsha'],
-      [10, 'D10 Dashamsha'], [12, 'D12 Dwadashamsha'], [30, 'D30 Trimshamsha'], [60, 'D60 Shashtiamsha']
-    ].forEach(function (division) {
+    var extraDivisions = create('details', { class: 'openastro-vedic-advanced' });
+    extraDivisions.appendChild(create('summary', null, 'More divisional charts'));
+    var extraDivisionGrid = create('div', { class: 'openastro-vedic-division-grid' });
+    availableDivisions.forEach(function (division) {
       var label = create('label', { class: 'openastro-inline' });
-      var check = create('input', { type: 'checkbox', value: String(division[0]), checked: division[0] === 1 || division[0] === 9 });
-      divisionChecks[division[0]] = check;
+      var check = create('input', { type: 'checkbox', value: String(division.id), checked: configuredDivisions.indexOf(division.id) !== -1 });
+      divisionChecks[division.id] = check;
       label.appendChild(check);
-      label.appendChild(document.createTextNode(division[1]));
-      divisionField.appendChild(label);
+      label.appendChild(document.createTextNode(division.label));
+      if (division.id === 1 || division.id === 9) {
+        divisionField.appendChild(label);
+      } else {
+        extraDivisionGrid.appendChild(label);
+      }
     });
-    divisionField.appendChild(create('small', null, 'The visual canvas renders the first four selected divisions; the workbench calculates every selected varga.'));
+    extraDivisions.appendChild(extraDivisionGrid);
+    divisionField.appendChild(extraDivisions);
+    divisionField.appendChild(create('small', null, workbench
+      ? 'The workbench calculates every selected varga. Choose up to four visual panels.'
+      : 'The visual canvas renders the first four selected divisions.'));
 
     var advanced = create('details', { class: 'openastro-vedic-advanced' });
     advanced.appendChild(create('summary', null, 'Practitioner controls'));
@@ -3155,28 +3237,46 @@
     advancedGrid.appendChild(outerLabel);
     advanced.appendChild(advancedGrid);
 
-    chartStyle.value = vedicCfg.chartStyle || 'north_indian';
+    chartStyle.value = layoutOverride || vedicCfg.chartStyle || 'north_indian';
     theme.value = vedicCfg.themeType || 'light';
     nodeType.value = vedicCfg.nodeType || 'mean';
     signLabels.value = vedicCfg.signLabelMode || 'number_abbr';
     bodyLabels.value = vedicCfg.bodyLabelMode || 'abbr';
     outerPlanets.checked = !!vedicCfg.includeOuterPlanets;
+    preset.value = defaultPreset;
 
     var referenceDate = create('input', { type: 'date', class: 'openastro-input', value: dateTodayValue(), 'aria-label': 'Dasha reference date' });
+    var referenceWrap = create('label', { class: 'openastro-vedic-control' });
+    referenceWrap.appendChild(create('span', null, 'Dasha reference date'));
+    referenceWrap.appendChild(referenceDate);
     var dashaLevels = create('select', { class: 'openastro-input', 'aria-label': 'Dasha depth' });
     [['0', 'Dasha off'], ['1', 'Mahadasha'], ['2', 'Mahadasha + Antardasha'], ['3', 'Through Pratyantardasha']].forEach(function (option) { dashaLevels.appendChild(create('option', { value: option[0] }, option[1])); });
-    dashaLevels.value = '2';
+    dashaLevels.value = String(typeof vedicCfg.dashaLevels === 'number' ? vedicCfg.dashaLevels : 2);
+    var dashaWrap = create('label', { class: 'openastro-vedic-control' });
+    dashaWrap.appendChild(create('span', null, 'Dasha depth'));
+    dashaWrap.appendChild(dashaLevels);
     var moduleField = create('fieldset', { class: 'openastro-vedic-options openastro-vedic-modules' });
     moduleField.appendChild(create('legend', null, 'Calculation modules'));
     var modules = {};
-    [['include_yogas', 'Yoga and dosha detection', true], ['include_panchang', 'Birth Panchang', true], ['include_shadbala', 'Shadbala strength', false], ['include_ashtakavarga', 'Ashtakavarga', false], ['include_avastha', 'Baladi Avastha', false]].forEach(function (item) {
+    var moduleDefaults = vedicCfg.modules && typeof vedicCfg.modules === 'object' ? vedicCfg.modules : {};
+    VEDIC_MODULES.forEach(function (item) {
       var label = create('label', { class: 'openastro-inline' });
-      var check = create('input', { type: 'checkbox', checked: item[2] });
-      modules[item[0]] = check;
+      var checked = hasModulesOverride
+        ? modulesOverride.indexOf(item.id) !== -1
+        : !!moduleDefaults[item.id];
+      var check = create('input', { type: 'checkbox', checked: checked });
+      modules[item.field] = check;
       label.appendChild(check);
-      label.appendChild(document.createTextNode(item[1]));
+      label.appendChild(document.createTextNode(item.label));
       moduleField.appendChild(label);
     });
+    var workbenchOptions = create('details', { class: 'openastro-vedic-advanced openastro-vedic-workbench-options' });
+    workbenchOptions.appendChild(create('summary', null, 'Workbench modules'));
+    var workbenchControlGrid = create('div', { class: 'openastro-vedic-control-grid' });
+    workbenchControlGrid.appendChild(referenceWrap);
+    workbenchControlGrid.appendChild(dashaWrap);
+    workbenchOptions.appendChild(workbenchControlGrid);
+    workbenchOptions.appendChild(moduleField);
 
     var submit = create('button', { type: 'submit', class: 'openastro-btn' }, workbench ? 'Generate Vedic workbench' : 'Generate Vedic chart');
     var status = create('p', { class: 'openastro-status', 'aria-live': 'polite' }, 'Exact birth time is required for Lagna, bhavas, and divisional charts.');
@@ -3189,9 +3289,7 @@
     form.appendChild(chartControls);
     form.appendChild(divisionField);
     if (workbench) {
-      form.appendChild(referenceDate);
-      form.appendChild(dashaLevels);
-      form.appendChild(moduleField);
+      form.appendChild(workbenchOptions);
     }
     form.appendChild(advanced);
     form.appendChild(submit);
@@ -3206,19 +3304,39 @@
 
     function setPreset(value) {
       var practitioner = value === 'practitioner';
-      [1, 2, 3, 7, 9, 10, 12, 30, 60].forEach(function (division) {
-        divisionChecks[division].checked = practitioner ? [1, 9, 10].indexOf(division) !== -1 : [1, 9].indexOf(division) !== -1;
+      var custom = value === 'custom';
+      var presetDivisions = practitioner
+        ? [1, 9, 10]
+        : (custom ? configuredDivisions : [1, 9]);
+      var presetModules = custom
+        ? (hasModulesOverride ? modulesOverride : VEDIC_MODULES.filter(function (item) { return !!moduleDefaults[item.id]; }).map(function (item) { return item.id; }))
+        : builtInModuleIds(practitioner);
+
+      Object.keys(divisionChecks).forEach(function (division) {
+        divisionChecks[division].checked = presetDivisions.indexOf(Number(division)) !== -1;
       });
-      modules.include_yogas.checked = true;
-      modules.include_panchang.checked = true;
-      modules.include_shadbala.checked = practitioner;
-      modules.include_ashtakavarga.checked = practitioner;
-      modules.include_avastha.checked = practitioner;
+      VEDIC_MODULES.forEach(function (item) {
+        modules[item.field].checked = presetModules.indexOf(item.id) !== -1;
+      });
+      dashaLevels.value = custom
+        ? String(typeof vedicCfg.dashaLevels === 'number' ? vedicCfg.dashaLevels : 2)
+        : (practitioner ? '3' : '2');
       outerPlanets.checked = practitioner;
       advanced.open = practitioner;
+      extraDivisions.open = practitioner || custom;
+      if (workbench) {
+        workbenchOptions.open = practitioner || custom;
+      }
+    }
+
+    function builtInModuleIds(practitioner) {
+      return practitioner
+        ? ['yogas', 'panchang', 'shadbala', 'ashtakavarga', 'avastha']
+        : ['yogas', 'panchang'];
     }
 
     preset.addEventListener('change', function () { setPreset(preset.value); });
+    setPreset(defaultPreset);
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
@@ -3234,11 +3352,15 @@
         status.textContent = 'Select at least one divisional chart.';
         return;
       }
+      if (!workbench && divisions.length > 4) {
+        status.textContent = 'Select up to four divisional charts for one visual canvas.';
+        return;
+      }
       var common = {
         year: Number(dateParts[0]), month: Number(dateParts[1]), day: Number(dateParts[2]),
         hour: Number(timeParts[0]), minute: Number(timeParts[1]),
         city: selectedCity.name || '', lat: Number(selectedCity.lat), lng: Number(selectedCity.lng),
-        tz_str: cityTimezoneLabel(selectedCity) || 'AUTO', ayanamsha: 'lahiri', house_system: 'whole_sign',
+        tz_str: cityTimezoneLabel(selectedCity) || 'AUTO', ayanamsha: vedicCfg.ayanamsha || 'lahiri', house_system: 'whole_sign',
         node_type: nodeType.value
       };
       var visualPayload = Object.assign({}, common, {
@@ -3298,12 +3420,50 @@
       }).finally(function () { submit.disabled = false; });
     });
 
+    function activateVedicResultTab(button, moveFocus) {
+      var report = button.closest('.openastro-vedic-report');
+      if (!report) return;
+      var id = button.getAttribute('data-openastro-vedic-tab');
+      report.querySelectorAll('[data-openastro-vedic-tab]').forEach(function (tabButton) {
+        var isActive = tabButton === button;
+        tabButton.classList.toggle('is-active', isActive);
+        tabButton.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        tabButton.setAttribute('tabindex', isActive ? '0' : '-1');
+      });
+      report.querySelectorAll('[data-openastro-vedic-panel]').forEach(function (panel) {
+        panel.hidden = panel.getAttribute('data-openastro-vedic-panel') !== id;
+      });
+      if (moveFocus) {
+        button.focus();
+      }
+    }
+
     output.addEventListener('click', function (event) {
+      var tab = event.target && event.target.closest ? event.target.closest('[data-openastro-vedic-tab]') : null;
+      if (tab) {
+        event.preventDefault();
+        activateVedicResultTab(tab, false);
+        return;
+      }
+
       var button = event.target && event.target.closest ? event.target.closest('[data-openastro-print-chart="1"]') : null;
       if (button) {
         event.preventDefault();
         printChartCard(button.closest('.openastro-chart-card'));
       }
+    });
+
+    output.addEventListener('keydown', function (event) {
+      var tab = event.target && event.target.closest ? event.target.closest('[data-openastro-vedic-tab]') : null;
+      if (!tab || ['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) === -1) return;
+      event.preventDefault();
+      var report = tab.closest('.openastro-vedic-report');
+      var tabs = Array.prototype.slice.call(report.querySelectorAll('[data-openastro-vedic-tab]'));
+      var index = tabs.indexOf(tab);
+      var nextIndex = event.key === 'Home'
+        ? 0
+        : (event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length);
+      activateVedicResultTab(tabs[nextIndex], true);
     });
   }
 

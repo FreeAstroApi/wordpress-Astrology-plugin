@@ -273,12 +273,14 @@ Example:
 - `.astrology-suite-vedic`, `.astrology-suite-vedic-intro`, `.astrology-suite-vedic-form`
   - Purpose: Main Vedic experience, heading, and birth/options form.
   - Rendered in: `astrology-suite/vedic-chart` and `astrology-suite/vedic-workbench`.
-- `.astrology-suite-vedic-options`, `.astrology-suite-vedic-advanced`, `.astrology-suite-vedic-control-grid`
-  - Purpose: Varga selection, calculation modules, and practitioner controls.
+- `.astrology-suite-vedic-options`, `.astrology-suite-vedic-advanced`, `.astrology-suite-vedic-control-grid`, `.astrology-suite-vedic-division-grid`
+  - Purpose: Varga selection, calculation modules, practitioner controls, and responsive option grids.
 - `.astrology-suite-vedic-chart-card`, `.astrology-suite-vedic-chart`
   - Purpose: Sanitized FreeAstroAPI Vedic SVG chart frame.
 - `.astrology-suite-vedic-report`, `.astrology-suite-vedic-summary-grid`
   - Purpose: Workbench overview and Lagna, Chandra, Surya, and Sade Sati summary.
+- `.astrology-suite-vedic-result-tabs`, `.astrology-suite-vedic-result-tab`, `.astrology-suite-vedic-result-panels`, `.astrology-suite-vedic-result-panel`
+  - Purpose: Keyboard-accessible workbench navigation for Grahas, Dashas, Yogas, Panchang, Strength, Ashtakavarga, and Vargas. The tab row scrolls horizontally on narrow screens.
 - `.astrology-suite-vedic-section`, `.astrology-suite-vedic-table-wrap`
   - Purpose: Expandable professional reference sections and responsive tables.
 - `.astrology-suite-vedic-dasha-grid`, `.astrology-suite-vedic-progress`

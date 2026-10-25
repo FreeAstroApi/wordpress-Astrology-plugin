@@ -4,7 +4,7 @@ Tags: astrology, natal chart, horoscope, vedic astrology, blocks
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 0.4.4
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,7 +26,7 @@ Astrology Suite for FreeAstroAPI is a WordPress toolkit for publishing interacti
 * Display D1, D9, and other supported vargas in North, South, or East Indian layouts.
 * Give astrologers a detailed workbench with grahas, Vimshottari dashas, yogas and doshas, Panchang, Shadbala, Ashtakavarga, Avastha, and practitioner presets.
 * Control Vedic chart layout, labels, node type, colors, sizing, titles, and saved defaults from dedicated settings.
-* Style Vedic result panels, summary tiles, tables, and badges with an instant no-request preview.
+* Style Vedic result panels, summary tiles, tables, and badges inside the consolidated Vedic Astrology tab with an instant no-request preview.
 
 = Built for WordPress site owners =
 
@@ -74,6 +74,7 @@ Included shortcodes:
 * `[astrology_suite_personalized_horoscope]`
 * `[astrology_suite_vedic_chart]`
 * `[astrology_suite_vedic_workbench]`
+* `[astrology_suite_vedic_workbench preset="custom" layout="south_indian" divisions="1,9,10" modules="yogas,panchang,shadbala"]`
 * `[astrology_suite_astrology_bot]`
 
 == External services ==
@@ -133,7 +134,7 @@ No server-side storage is performed by default. The “Past inputs” list is ke
 
 = Can I style the widgets? =
 
-Yes. Use **Style**, **Vedic Chart**, **Ephemeris Style**, and **Typography** for visual controls and live previews. The documented CSS classes support theme-level customization.
+Yes. Use **Style**, **Vedic Astrology**, **Ephemeris Style**, and **Typography** for visual controls and live previews. The documented CSS classes support theme-level customization.
 
 = Which Western house system and lunar node are used? =
 
@@ -155,18 +156,21 @@ Preview requests share the same site-wide FreeAstroAPI queue as frontend calcula
 
 == Screenshots ==
 
-1. Frontend chart and report widget with saved birth input, generated natal wheel, and styled form controls.
-2. Frontend natal report sections with Ascendant, Midheaven, and planet interpretation cards.
-3. Frontend aspect dynamics table rendered below the report.
-4. API settings screen with the FreeAstroAPI key field and service disclosure.
-5. Report settings screen for report length, tables, angles, and chart print controls.
-6. Style settings screen for colors, background transparency, border radius, typography, labels, and form controls.
-7. Frontend Vedic Visual Chart with generated D1 Rashi and D9 Navamsha charts.
-8. Vedic Chart settings with a generated D1/D9 settings preview.
-9. Style settings with the instant no-request Vedic result preview.
-10. Vedic Astrology Workbench with overview cards and a readable graha table.
+1. Vedic Visual Chart with guided defaults, regional layout, divisional-chart selection, and generated output.
+2. Consolidated Vedic Astrology settings with presets, chart defaults, and explicit ayanamsha/house-system guidance.
+3. Vedic result appearance preview with live local styling and no settings-page API request.
+4. Vedic Astrology Workbench with summary cards, section navigation, dashas, yogas, Panchang, strength, Ashtakavarga, and varga references.
 
 == Changelog ==
+
+= 0.5.0 =
+* Reorganized all Vedic defaults, chart controls, workbench modules, result styling, and previews into one Vedic Astrology settings tab with five internal sections.
+* Added Guided, Practitioner, and Custom Vedic presets for site defaults and individual blocks.
+* Added per-block and shortcode overrides for Vedic preset, Kundli layout, divisional charts, and result modules.
+* Expanded Vedic visual support to the additional divisional charts documented by FreeAstroAPI.
+* Added a section-based Vedic workbench with keyboard-accessible Grahas, Dashas, Yogas, Panchang, Strength, Ashtakavarga, and Varga views.
+* Added documented title, subtitle, brand, house, and badge chart color controls under an advanced disclosure.
+* Changed the generated Vedic settings preview to load only when requested, reducing API usage while editing settings.
 
 = 0.4.4 =
 * Tested with WordPress 7.1.3.
@@ -281,6 +285,9 @@ Preview requests share the same site-wide FreeAstroAPI queue as frontend calcula
 * Added and refined simple sign widgets.
 
 == Upgrade Notice ==
+
+= 0.5.0 =
+Adds a consolidated Vedic Astrology workspace, audience presets, per-block Vedic controls, expanded divisional charts, and a shorter section-based workbench.
 
 = 0.4.4 =
 Adds WordPress 7.1 compatibility and security hardening for API requests, REST input, SVG output, rate limiting, and API credentials.
